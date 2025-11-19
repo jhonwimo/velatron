@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<title>Velatron vs Osos — Juego</title>
+<style>
+  :root{--bg:#0b1220;--panel:#0f1720;--text:#e6eef8}
+  body{margin:0;background:linear-gradient(180deg,#071026,#0b1220);font-family:Inter,Arial,Helvetica,sans-serif;color:var(--text);display:flex;flex-direction:column;align-items:center;min-height:100vh}
+  h1{margin:18px 0 6px;font-weight:600}
+  #container{position:relative}
+  canvas{background:linear-gradient(180deg,#0b1220,#102033);display:block;border-radius:8px;box-shadow:0 10px 30px rgba(0,0,0,0.6)}
+  #hud{position:absolute;left:12px;top:10px;color:#e6eef8;font-weight:600;pointer-events:none}
+  #controls{position: absolute; right: 12px; top: 10px; color: #bcd6ee; font-size:13px}
+  .big{font-size:18px}
+  #menu{margin:12px}
+  button{padding:8px 12px;border-radius:8px;border:0;background:#2b6b88;color:white;cursor:pointer;margin-right:8px}
+  button:focus{outline:none}
+  #msg{color:#cfe9ff;margin-top:8px;font-size:13px}
+</style>
+</head>
+<body>
+  <h1>Velatron vs Osos</h1>
+  <div id="container">
+    <div id="hud" class="big">Puntos: 0 · Vidas: 3</div>
+    <div id="controls">A / D / ← → = mover · Espacio = cortar</div>
+    <canvas id="game" width="900" height="560"></canvas>
+  </div>
+  <div id="menu">
+    <button id="startBtn">Iniciar</button>
+    <button id="restartBtn">Reiniciar</button>
+    <span id="msg">Haz clic en el canvas para activar sonido.</span>
+  </div>
+
+<script>
+/* ------------------ Assets ------------------ */
+const PLAYER_IMG_SRC = "velatron.png"; 
+const OSO_IMG_SRC = "oso.jpg"; // ← tu oso
+
+/* ------------------ Canvas / Audio ------------------ */
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+const hud = document.getElementById("hud");
+const startBtn = document.getElementById("startBtn");
+const restartBtn = document.getElementById("restartBtn");
+
+let audioCtx = null;
+function ensureAudio(){
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+}
+canvas.addEventListener('mousedown', ()=> { ensureAudio(); });
+
+function beep(freq, time=0.08, type='sine', vol=0.08){
+  if(!audioCtx) return;
+  const o = audioCtx.createOscillator();
+  const g = audioCtx.createGain();
+  o.type = type; o.frequency.value = freq;
+  g.gain.value = vol;
+  o.connect(g); g.connect(audioCtx.destination);
+  o.start();
+  g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + time);
+  o.stop(audioCtx.currentTime + time + 0.02);
+}
+
+/* ------------------ Estado global ------------------ */
+const WIDTH = canvas.width, HEIGHT = canvas.height;
+let running = false;
+let lastTime = 0;
+let score = 0;
+let lives = 3;
+
+/* ------------------ Jugador ------------------ */
+const playerImg = new Image();
+playerImg.src = PLAYER_IMG_SRC;
+
+const osoImg = new Image();
+osoImg.src = OSO_IMG_SRC;
+
+const player = {
+  x: 120,
+  y: HEIGHT - 160,
+  w: 140,
+  h: 140,
+  speed: 6,
+  vx: 0,
+  facing: 1,
+  attacking: false,
+  attackDur: 220,
+  attackTimer: 0,
+  attackCool: 280
+};
+
+/* ------------------ Osos y cabezas ------------------ */
+let bears = [];
+let heads = [];
+
+function spawnBear(){
+  const size = 100; // tamaño consistente
+  bears.push({
+    x: Math.random()*(WIDTH - size - 80) + 40,
+    y: -size - 20,
+    w: size,
+    h: size,
+    speed: 1 + Math.random()*1.8,
+    hp: 1
+  });
+}
+
+let spawnInterval = 1200;
+let spawnTimer = 0;
+
+/* ------------------ Controles ------------------ */
+const keys = {};
+document.addEventListener('keydown', (e)=>{
+  keys[e.key] = true;
+  if (e.key === ' ' || e.code === 'Space') startAttack();
+});
+document.addEventListener('keyup', (e)=>{ keys[e.key] = false; });
+
+function startAttack(){
+  if (player.attacking) return;
+  const now = performance.now();
+  if (player.attackTimer && now - player.attackTimer < player.attackCool) return;
+  player.attacking = true;
+  player.attackTimer = now;
+  beep(1100, 0.06, 'square', 0.06);
+}
+
+/* ------------------ Física ------------------ */
+const GRAVITY = 0.6;
+
+/* ------------------ Update ------------------ */
+function update(dt){
+  if (!running) return;
+
+  /* movimiento */
+  player.vx = 0;
+  if (keys['a'] || keys['A'] || keys['ArrowLeft']) { player.vx = -player.speed; player.facing = -1; }
+  if (keys['d'] || keys['D'] || keys['ArrowRight']) { player.vx = player.speed; player.facing = 1; }
+  player.x += player.vx;
+  player.x = Math.max(8, Math.min(WIDTH - player.w - 8, player.x));
+
+  /* ataque */
+  if (player.attacking){
+    if (performance.now() - player.attackTimer > player.attackDur){
+      player.attacking = false;
+      player.attackTimer = performance.now();
+    }
+  }
+
+  /* osos */
+  for (let i = bears.length-1; i>=0; --i){
+    const b = bears[i];
+    b.y += b.speed;
+
+    if (rectsCollide(b, player)){
+      bears.splice(i,1);
+      lives -= 1;
+      beep(180,0.12,'sawtooth',0.12);
+      if (lives <= 0) { gameOver(); return; }
+    } else if (player.attacking){
+      const swordRegion = getSwordRegion();
+      const headRect = { x: b.x, y: b.y, w: b.w, h: b.h*0.4 };
+      if (rectsCollide(swordRegion, headRect)){
+        spawnHead(b.x + b.w/2, b.y + b.h*0.2, b.w*0.45);
+        bears.splice(i,1);
+        score += 25;
+        beep(900,0.05,'triangle',0.06);
+      }
+    }
+
+    if (b.y > HEIGHT + 80) {
+      bears.splice(i,1);
+      lives -= 1;
+      if (lives <= 0) { gameOver(); return; }
+    }
+  }
+
+  /* cabezas */
+  for (let i = heads.length-1; i>=0; --i){
+    const h = heads[i];
+    h.vy += GRAVITY * (dt/16.67);
+    h.x += h.vx * (dt/16.67);
+    h.y += h.vy * (dt/16.67);
+    h.rot += h.vr * (dt/16.67);
+    h.life -= dt;
+    if (h.y > HEIGHT + 120 || h.life <= 0) heads.splice(i,1);
+  }
+
+  spawnTimer += dt;
+  if (spawnTimer > spawnInterval){
+    spawnTimer = 0;
+    spawnBear();
+    spawnInterval = Math.max(600, 1200 - Math.floor(score/80)*30);
+  }
+}
+
+/* ------------------ Draw ------------------ */
+function draw(){
+  ctx.clearRect(0,0,WIDTH,HEIGHT);
+
+  /* suelo */
+  ctx.fillStyle = "#08131a";
+  ctx.fillRect(0, HEIGHT - 40, WIDTH, 40);
+
+  /* osos con imagen */
+  bears.forEach(b => {
+    ctx.save();
+
+    ctx.fillStyle = "rgba(0,0,0,0.25)";
+    ctx.beginPath();
+    ctx.ellipse(b.x + b.w/2, b.y + b.h, b.w*0.4, 15, 0, 0, Math.PI*2);
+    ctx.fill();
+
+    ctx.drawImage(osoImg, b.x, b.y, b.w, b.h);
+
+    ctx.restore();
+  });
+
+  /* cabezas */
+  heads.forEach(h => {
+    ctx.save();
+    ctx.translate(h.x, h.y);
+    ctx.rotate(h.rot);
+    ctx.globalAlpha = Math.max(0.15, h.life/3000);
+    ctx.drawImage(osoImg, -h.r, -h.r, h.r*2, h.r*2);
+    ctx.restore();
+  });
+
+  /* jugador */
+  ctx.save();
+  if (player.facing === -1){
+    ctx.translate(player.x + player.w/2, player.y);
+    ctx.scale(-1,1);
+    ctx.drawImage(playerImg, -player.w/2, 0, player.w, player.h);
+  } else {
+    ctx.drawImage(playerImg, player.x, player.y, player.w, player.h);
+  }
+  ctx.restore();
+
+  /* ataque */
+  if (player.attacking){
+    const s = getSwordRegion();
+    ctx.save();
+    ctx.globalAlpha = 0.8;
+    ctx.fillStyle = "rgba(200,240,255,0.4)";
+    ctx.beginPath();
+    ctx.ellipse(s.x + s.w/2, s.y + s.h/2, s.w/2, s.h/2, 0, 0, Math.PI*2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  hud.textContent = `Puntos: ${score} · Vidas: ${lives}`;
+}
+
+/* ------------------ Helpers ------------------ */
+function rectsCollide(a,b){
+  return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+}
+
+function getSwordRegion(){
+  const width = 140, height = 60;
+  if (player.facing === 1){
+    return { x: player.x + player.w*0.6, y: player.y + player.h*0.25, w: width, h: height };
+  } else {
+    return { x: player.x - width*0.55, y: player.y + player.h*0.25, w: width, h: height };
+  }
+}
+
+function spawnHead(cx, cy, size){
+  const vx = (Math.random()*6 - 3) + (player.facing * 2);
+  const vy = -6 - Math.random()*4;
+  const vr = (Math.random()*0.24 - 0.12);
+  heads.push({ x: cx, y: cy, vx, vy, vr, rot: 0, r: size, life: 3000 });
+}
+
+/* ------------------ Game control ------------------ */
+function gameOver(){
+  running = false;
+  beep(100,0.5,'sawtooth',0.12);
+  setTimeout(()=> alert(`Game Over\nPuntos: ${score}`), 50);
+}
+
+function restart(){
+  score = 0; lives = 3; bears = []; heads = [];
+  spawnInterval = 1200; spawnTimer = 0;
+  player.x = 120;
+  running = true;
+  lastTime = performance.now();
+  requestAnimationFrame(loop);
+}
+
+/* loop */
+function loop(now){
+  const dt = now - (lastTime || now);
+  lastTime = now;
+  update(dt);
+  draw();
+  if (running) requestAnimationFrame(loop);
+}
+
+startBtn.addEventListener('click', ()=>{ if (!running) restart(); });
+restartBtn.addEventListener('click', ()=> restart());
+
+draw();
+
+</script>
+</body>
+</html>
