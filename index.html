@@ -270,7 +270,7 @@ function showGameOver(finalScore) {
       // Opcional: cerrar pestaña o ir a otra página
       window.close();
     }
-    timer: 40000
+    timer: 4000000
   });
 }
 
@@ -504,7 +504,7 @@ function rectsCollide(a,b){
 function update(dt){
   WIDTH = canvas.width;
   HEIGHT = canvas.height;
-  player.y = HEIGHT - 200;
+  player.y = HEIGHT - 350;
 
   // movimiento
   player.vx = 0;
