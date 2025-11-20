@@ -419,9 +419,57 @@ function draw(){
   ctx.fillStyle = "#08131a";
   ctx.fillRect(0, HEIGHT - 40, WIDTH, 40);
 
-  // osos
+  // osos (sin fondo)
   bears.forEach(b => {
+    ctx.save();
+    
+    // Aplicar filtro para eliminar fondo blanco/claro
+    ctx.globalCompositeOperation = 'multiply';
+    ctx.fillStyle = 'rgba(255, 255, 255, 1)';
+    ctx.fillRect(b.x, b.y, b.w, b.h);
+    
+    ctx.globalCompositeOperation = 'screen';
     ctx.drawImage(osoImg, b.x, b.y, b.w, b.h);
+    
+    // Restaurar modo normal y aplicar máscara para eliminar blancos
+    ctx.globalCompositeOperation = 'source-over';
+    
+    // Crear canvas temporal para procesamiento avanzado
+    if (!window.bearCanvas) {
+      window.bearCanvas = document.createElement('canvas');
+      window.bearCtx = window.bearCanvas.getContext('2d');
+      window.bearCanvas.width = 200;
+      window.bearCanvas.height = 200;
+      
+      // Pre-procesar la imagen del oso una sola vez
+      window.bearCtx.drawImage(osoImg, 0, 0, 200, 200);
+      const imageData = window.bearCtx.getImageData(0, 0, 200, 200);
+      const data = imageData.data;
+      
+      // Eliminar píxeles blancos y claros
+      for (let i = 0; i < data.length; i += 4) {
+        const r = data[i];
+        const g = data[i + 1];
+        const b_val = data[i + 2];
+        const brightness = (r + g + b_val) / 3;
+        
+        // Si es muy claro (fondo), hacerlo transparente
+        if (brightness > 180) {
+          data[i + 3] = 0;
+        }
+        // Si es gris claro, reducir opacidad
+        else if (brightness > 120) {
+          data[i + 3] = Math.max(0, data[i + 3] - brightness);
+        }
+      }
+      
+      window.bearCtx.putImageData(imageData, 0, 0);
+    }
+    
+    // Dibujar el oso procesado
+    ctx.drawImage(window.bearCanvas, 0, 0, 200, 200, b.x, b.y, b.w, b.h);
+    
+    ctx.restore();
   });
 
   // láseres disparados
