@@ -173,6 +173,9 @@ let lasers = [];
 let lastShot = 0;
 let shootCooldown = 300; // 300ms entre disparos
 
+/* ---------------- Explosiones ---------------- */
+let explosions = [];
+
 function spawnBear(){
   const size = 110;
   bears.push({
@@ -181,6 +184,31 @@ function spawnBear(){
     w: size,
     h: size,
     speed: 1 + Math.random()*1.8,
+  });
+}
+
+/* ---------------- Explosiones ---------------- */
+function createExplosion(x, y) {
+  const particles = [];
+  const numParticles = 15 + Math.random() * 10;
+  
+  for (let i = 0; i < numParticles; i++) {
+    particles.push({
+      x: x,
+      y: y,
+      vx: (Math.random() - 0.5) * 8,
+      vy: (Math.random() - 0.5) * 8,
+      life: 1.0,
+      decay: 0.02 + Math.random() * 0.02,
+      size: 3 + Math.random() * 4,
+      color: Math.random() < 0.5 ? 'orange' : 'red'
+    });
+  }
+  
+  explosions.push({
+    particles: particles,
+    time: 0,
+    duration: 1000
   });
 }
 
@@ -213,10 +241,10 @@ function shootLaser(){
   
   // crear láser desde el centro del jugador
   lasers.push({
-    x: player.x + player.w/2 - 3,
+    x: player.x + player.w/2 - 8,
     y: player.y + 20,
-    w: 6,
-    h: 20,
+    w: 16,
+    h: 35,
     speed: 12,
     glow: 0
   });
@@ -376,6 +404,30 @@ function update(dt){
     }
   }
 
+  // explosiones
+  for (let i = explosions.length - 1; i >= 0; i--){
+    const explosion = explosions[i];
+    explosion.time += dt;
+    
+    // actualizar partículas
+    for (let j = explosion.particles.length - 1; j >= 0; j--){
+      const p = explosion.particles[j];
+      p.x += p.vx;
+      p.y += p.vy;
+      p.life -= p.decay;
+      p.vy += 0.1; // gravedad ligera
+      
+      if (p.life <= 0){
+        explosion.particles.splice(j, 1);
+      }
+    }
+    
+    // eliminar explosión cuando no quedan partículas
+    if (explosion.particles.length === 0 || explosion.time > explosion.duration){
+      explosions.splice(i, 1);
+    }
+  }
+
   // láseres
   for (let i = lasers.length - 1; i >= 0; i--){
     const l = lasers[i];
@@ -387,6 +439,10 @@ function update(dt){
       const b = bears[j];
       if (rectsCollide(l, b)){
         score += 50; // más puntos por disparar
+        
+        // Crear explosión en el centro del oso
+        createExplosion(b.x + b.w/2, b.y + b.h/2);
+        
         bears.splice(j, 1);
         lasers.splice(i, 1);
         playExplosionSound(); // Sonido de explosión
@@ -472,22 +528,62 @@ function draw(){
     ctx.restore();
   });
 
+  // explosiones
+  explosions.forEach(explosion => {
+    explosion.particles.forEach(p => {
+      ctx.save();
+      
+      const alpha = p.life;
+      ctx.globalAlpha = alpha;
+      
+      // glow effect
+      ctx.shadowColor = p.color;
+      ctx.shadowBlur = 8 * alpha;
+      
+      // partícula principal
+      ctx.fillStyle = p.color;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.size * alpha, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // núcleo brillante
+      ctx.fillStyle = 'white';
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.size * alpha * 0.5, 0, Math.PI * 2);
+      ctx.fill();
+      
+      ctx.restore();
+    });
+  });
+
   // láseres disparados
   lasers.forEach(l => {
     ctx.save();
     
-    // efecto de brillo pulsante
-    const intensity = 0.7 + 0.3 * Math.sin(l.glow * 3);
-    ctx.shadowColor = "#00ffff";
-    ctx.shadowBlur = 15;
+    // efecto de brillo pulsante más intenso
+    const intensity = 0.8 + 0.2 * Math.sin(l.glow * 4);
+    const glowSize = 25 + 10 * Math.sin(l.glow * 2);
     
-    // láser principal (cian brillante)
+    // Halo exterior (más grande y brillante)
+    ctx.shadowColor = "#00ffff";
+    ctx.shadowBlur = glowSize;
+    ctx.fillStyle = `rgba(0, 255, 255, ${intensity * 0.3})`;
+    ctx.fillRect(l.x - 4, l.y, l.w + 8, l.h);
+    
+    // Láser principal (cian brillante más grande)
+    ctx.shadowBlur = 20;
     ctx.fillStyle = `rgba(0, 255, 255, ${intensity})`;
     ctx.fillRect(l.x, l.y, l.w, l.h);
     
-    // núcleo del láser (blanco)
-    ctx.fillStyle = `rgba(255, 255, 255, ${intensity * 0.8})`;
-    ctx.fillRect(l.x + 1, l.y, l.w - 2, l.h);
+    // Núcleo del láser (blanco brillante)
+    ctx.shadowBlur = 10;
+    ctx.fillStyle = `rgba(255, 255, 255, ${intensity * 0.9})`;
+    ctx.fillRect(l.x + 3, l.y, l.w - 6, l.h);
+    
+    // Línea central ultra brillante
+    ctx.shadowBlur = 5;
+    ctx.fillStyle = `rgba(255, 255, 255, ${intensity})`;
+    ctx.fillRect(l.x + 6, l.y, l.w - 12, l.h);
     
     ctx.restore();
   });
