@@ -477,9 +477,54 @@ function draw(){
   ctx.fillStyle = "#08131a";
   ctx.fillRect(0, HEIGHT - 40, WIDTH, 40);
 
-  // osos (¡ahora se dibuja la imagen transparente sin procesamiento extra!)
+  // osos (sin fondo - solo la figura del oso)
   bears.forEach(b => {
-    ctx.drawImage(osoImg, b.x, b.y, b.w, b.h);
+    ctx.save();
+    
+    // Crear un canvas temporal para procesar la imagen del oso
+    if (!window.processedBearImg) {
+      const tempCanvas = document.createElement('canvas');
+      const tempCtx = tempCanvas.getContext('2d');
+      tempCanvas.width = 200;
+      tempCanvas.height = 200;
+      
+      // Dibujar la imagen original
+      tempCtx.drawImage(osoImg, 0, 0, 200, 200);
+      
+      // Obtener y procesar los píxeles
+      const imageData = tempCtx.getImageData(0, 0, 200, 200);
+      const data = imageData.data;
+      
+      // Eliminar fondo blanco/claro
+      for (let i = 0; i < data.length; i += 4) {
+        const r = data[i];
+        const g = data[i + 1];
+        const b_val = data[i + 2];
+        const brightness = (r + g + b_val) / 3;
+        
+        // Si es muy claro (probable fondo), hacerlo transparente
+        if (brightness > 200) {
+          data[i + 3] = 0; // Completamente transparente
+        }
+        // Si es gris claro, reducir mucho la opacidad
+        else if (brightness > 160) {
+          data[i + 3] = Math.max(0, data[i + 3] * 0.2);
+        }
+        // Si es gris medio, reducir un poco la opacidad
+        else if (brightness > 120) {
+          data[i + 3] = Math.max(0, data[i + 3] * 0.7);
+        }
+      }
+      
+      // Guardar la imagen procesada
+      tempCtx.putImageData(imageData, 0, 0);
+      window.processedBearImg = tempCanvas;
+    }
+    
+    // Dibujar el oso procesado (solo la figura, sin fondo)
+    ctx.drawImage(window.processedBearImg, 0, 0, 200, 200, b.x, b.y, b.w, b.h);
+    
+    ctx.restore();
   });
 
   // explosiones
