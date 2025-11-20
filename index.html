@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <title>Velatron vs Osos — Juego</title>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <style>
   html, body {
     margin: 0;
@@ -37,6 +38,58 @@
     color: white;
     font-size: 18px;
     z-index: 10;
+  }
+
+  /* Personalización de SweetAlert2 tema Velatron */
+  .swal2-popup {
+    background: linear-gradient(135deg, #0b1220 0%, #071026 50%, #102033 100%) !important;
+    border: 2px solid #00ffff !important;
+    border-radius: 15px !important;
+    box-shadow: 0 0 30px rgba(0, 255, 255, 0.5), inset 0 0 20px rgba(0, 100, 150, 0.3) !important;
+  }
+
+  .swal2-title {
+    color: #00ffff !important;
+    font-family: 'Inter', Arial, sans-serif !important;
+    text-shadow: 0 0 10px rgba(0, 255, 255, 0.8) !important;
+    font-weight: bold !important;
+  }
+
+  .swal2-html-container {
+    color: #ffffff !important;
+    font-family: 'Inter', Arial, sans-serif !important;
+    text-shadow: 0 0 5px rgba(255, 255, 255, 0.5) !important;
+  }
+
+  .swal2-confirm {
+    background: linear-gradient(45deg, #00ffff, #0080ff) !important;
+    border: none !important;
+    border-radius: 8px !important;
+    color: #000 !important;
+    font-weight: bold !important;
+    box-shadow: 0 0 15px rgba(0, 255, 255, 0.6) !important;
+    transition: all 0.3s ease !important;
+  }
+
+  .swal2-confirm:hover {
+    background: linear-gradient(45deg, #0080ff, #00ffff) !important;
+    box-shadow: 0 0 25px rgba(0, 255, 255, 0.8) !important;
+    transform: scale(1.05) !important;
+  }
+
+  .swal2-cancel {
+    background: linear-gradient(45deg, #ff4444, #cc0000) !important;
+    border: none !important;
+    border-radius: 8px !important;
+    color: #fff !important;
+    font-weight: bold !important;
+    box-shadow: 0 0 15px rgba(255, 68, 68, 0.6) !important;
+  }
+
+  .swal2-cancel:hover {
+    background: linear-gradient(45deg, #cc0000, #ff4444) !important;
+    box-shadow: 0 0 25px rgba(255, 68, 68, 0.8) !important;
+    transform: scale(1.05) !important;
   }
 </style>
 </head>
@@ -147,6 +200,64 @@ function initAudio() {
     audioContext.resume();
   }
   audioInitialized = true;
+}
+
+/* ---------------- Alertas Velatron ---------------- */
+function showGameOver(finalScore) {
+  Swal.fire({
+    title: '⚡ GAME OVER ⚡',
+    html: `
+      <div style="text-align: center;">
+        <div style="font-size: 1.2em; margin: 10px 0;">🚀 <strong>VELATRON DESTRUIDO</strong> 🚀</div>
+        <div style="font-size: 1.5em; color: #00ffff; margin: 15px 0;">
+          🏆 Puntuación Final: <strong>${finalScore}</strong>
+        </div>
+        <div style="font-size: 0.9em; opacity: 0.8; margin: 10px 0;">
+          Los osos han conquistado la galaxia...<br>
+          ¿Intentarás salvar el universo de nuevo?
+        </div>
+      </div>
+    `,
+    icon: 'error',
+    iconColor: '#ff4444',
+    showCancelButton: true,
+    confirmButtonText: '🔄 Reiniciar Misión',
+    cancelButtonText: '❌ Abandonar',
+    allowOutsideClick: false,
+    allowEscapeKey: false,
+    backdrop: 'rgba(0, 0, 0, 0.8)'
+  }).then((result) => {
+    if (result.isConfirmed) {
+      document.location.reload();
+    } else {
+      // Opcional: cerrar pestaña o ir a otra página
+      window.close();
+    }
+  });
+}
+
+function showVictory(finalScore) {
+  Swal.fire({
+    title: '🌟 ¡VICTORIA ÉPICA! 🌟',
+    html: `
+      <div style="text-align: center;">
+        <div style="font-size: 1.2em; margin: 10px 0;">⚡ <strong>VELATRON TRIUNFANTE</strong> ⚡</div>
+        <div style="font-size: 1.5em; color: #00ffff; margin: 15px 0;">
+          🏆 Puntuación: <strong>${finalScore}</strong>
+        </div>
+        <div style="font-size: 0.9em; opacity: 0.8; margin: 10px 0;">
+          ¡Has salvado la galaxia!<br>
+          Los osos han sido derrotados.
+        </div>
+      </div>
+    `,
+    icon: 'success',
+    iconColor: '#00ffff',
+    confirmButtonText: '🎮 Jugar de Nuevo',
+    backdrop: 'rgba(0, 50, 100, 0.8)'
+  }).then(() => {
+    document.location.reload();
+  });
 }
 
 const player = {
@@ -383,8 +494,7 @@ function update(dt){
       bears.splice(i,1);
       playHitSound(); // Sonido de daño
       if (lives <= 0){
-        alert("GAME OVER - Puntos: " + score);
-        document.location.reload();
+        showGameOver(score);
       }
       continue;
     }
