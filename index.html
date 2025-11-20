@@ -64,11 +64,16 @@
   .swal2-confirm {
     background: linear-gradient(45deg, #00ffff, #0080ff) !important;
     border: none !important;
-    border-radius: 8px !important;
+    border-radius: 12px !important;
     color: #000 !important;
     font-weight: bold !important;
+    font-size: 18px !important;
+    padding: 15px 30px !important;
+    min-width: 200px !important;
+    min-height: 50px !important;
     box-shadow: 0 0 15px rgba(0, 255, 255, 0.6) !important;
     transition: all 0.3s ease !important;
+    margin: 10px !important;
   }
 
   .swal2-confirm:hover {
@@ -80,16 +85,48 @@
   .swal2-cancel {
     background: linear-gradient(45deg, #ff4444, #cc0000) !important;
     border: none !important;
-    border-radius: 8px !important;
+    border-radius: 12px !important;
     color: #fff !important;
     font-weight: bold !important;
+    font-size: 18px !important;
+    padding: 15px 30px !important;
+    min-width: 200px !important;
+    min-height: 50px !important;
     box-shadow: 0 0 15px rgba(255, 68, 68, 0.6) !important;
+    margin: 10px !important;
   }
 
   .swal2-cancel:hover {
     background: linear-gradient(45deg, #cc0000, #ff4444) !important;
     box-shadow: 0 0 25px rgba(255, 68, 68, 0.8) !important;
     transform: scale(1.05) !important;
+  }
+
+  /* Botones más grandes en dispositivos móviles */
+  @media (max-width: 768px) {
+    .swal2-confirm, .swal2-cancel {
+      font-size: 20px !important;
+      padding: 18px 35px !important;
+      min-width: 250px !important;
+      min-height: 60px !important;
+      margin: 15px !important;
+    }
+    
+    .swal2-actions {
+      flex-direction: column !important;
+      gap: 10px !important;
+    }
+  }
+
+  /* Botones extra grandes para pantallas muy pequeñas */
+  @media (max-width: 480px) {
+    .swal2-confirm, .swal2-cancel {
+      font-size: 22px !important;
+      padding: 20px 40px !important;
+      min-width: 280px !important;
+      min-height: 65px !important;
+      margin: 15px 5px !important;
+    }
   }
 </style>
 </head>
@@ -263,8 +300,8 @@ function showVictory(finalScore) {
 const player = {
   x: 100,
   y: HEIGHT - 200,
-  w: 140,
-  h: 140,
+  w: 154,
+  h: 154,
   vx: 0,
   speed: 6,
   facing: 1,
