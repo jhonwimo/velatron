@@ -16,6 +16,23 @@
   button{padding:8px 12px;border-radius:8px;border:0;background:#2b6b88;color:white;cursor:pointer;margin-right:8px}
   button:focus{outline:none}
   #msg{color:#cfe9ff;margin-top:8px;font-size:13px}
+
+  /* ====== BOTONES MÓVILES ====== */
+  #mobileControls {
+    margin-top: 18px;
+    display: none;
+    gap: 20px;
+  }
+
+  .mc-btn {
+    background: #2b6b88;
+    color: white;
+    border: none;
+    font-size: 26px;
+    padding: 18px 22px;
+    border-radius: 14px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.4);
+  }
 </style>
 </head>
 <body>
@@ -31,10 +48,17 @@
     <span id="msg">Haz clic en el canvas para activar sonido.</span>
   </div>
 
+  <!-- CONTROLES PARA MÓVIL -->
+  <div id="mobileControls">
+    <button class="mc-btn" id="btnLeft">⟵</button>
+    <button class="mc-btn" id="btnAttack">⚔</button>
+    <button class="mc-btn" id="btnRight">⟶</button>
+  </div>
+
 <script>
 /* ------------------ Assets ------------------ */
 const PLAYER_IMG_SRC = "velatron.png"; 
-const OSO_IMG_SRC = "oso.jpg"; // ← tu oso
+const OSO_IMG_SRC = "oso.jpg";
 
 /* ------------------ Canvas / Audio ------------------ */
 const canvas = document.getElementById("game");
@@ -94,7 +118,7 @@ let bears = [];
 let heads = [];
 
 function spawnBear(){
-  const size = 100; // tamaño consistente
+  const size = 100;
   bears.push({
     x: Math.random()*(WIDTH - size - 80) + 40,
     y: -size - 20,
@@ -198,25 +222,19 @@ function update(dt){
 function draw(){
   ctx.clearRect(0,0,WIDTH,HEIGHT);
 
-  /* suelo */
   ctx.fillStyle = "#08131a";
   ctx.fillRect(0, HEIGHT - 40, WIDTH, 40);
 
-  /* osos con imagen */
   bears.forEach(b => {
     ctx.save();
-
     ctx.fillStyle = "rgba(0,0,0,0.25)";
     ctx.beginPath();
     ctx.ellipse(b.x + b.w/2, b.y + b.h, b.w*0.4, 15, 0, 0, Math.PI*2);
     ctx.fill();
-
     ctx.drawImage(osoImg, b.x, b.y, b.w, b.h);
-
     ctx.restore();
   });
 
-  /* cabezas */
   heads.forEach(h => {
     ctx.save();
     ctx.translate(h.x, h.y);
@@ -226,7 +244,6 @@ function draw(){
     ctx.restore();
   });
 
-  /* jugador */
   ctx.save();
   if (player.facing === -1){
     ctx.translate(player.x + player.w/2, player.y);
@@ -237,7 +254,6 @@ function draw(){
   }
   ctx.restore();
 
-  /* ataque */
   if (player.attacking){
     const s = getSwordRegion();
     ctx.save();
@@ -300,6 +316,35 @@ function loop(now){
 
 startBtn.addEventListener('click', ()=>{ if (!running) restart(); });
 restartBtn.addEventListener('click', ()=> restart());
+
+/* ------------------ ACTIVAR CONTROLES MOVIL ------------------ */
+const btnLeft = document.getElementById("btnLeft");
+const btnRight = document.getElementById("btnRight");
+const btnAttack = document.getElementById("btnAttack");
+
+function bindButton(btn, key){
+  btn.addEventListener("touchstart", e => {
+    e.preventDefault();
+    keys[key] = true;
+  });
+  btn.addEventListener("touchend", e => {
+    e.preventDefault();
+    keys[key] = false;
+  });
+}
+
+bindButton(btnLeft, "ArrowLeft");
+bindButton(btnRight, "ArrowRight");
+
+btnAttack.addEventListener("touchstart", e => {
+  e.preventDefault();
+  startAttack();
+});
+
+/* mostrar controles si es móvil */
+if (/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+  document.getElementById("mobileControls").style.display = "flex";
+}
 
 draw();
 
