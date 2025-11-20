@@ -121,11 +121,17 @@
   /* Botones extra grandes para pantallas muy pequeñas */
   @media (max-width: 480px) {
     .swal2-confirm, .swal2-cancel {
-      font-size: 22px !important;
-      padding: 20px 40px !important;
-      min-width: 280px !important;
-      min-height: 65px !important;
-      margin: 15px 5px !important;
+      font-size: 24px !important;
+      padding: 22px 45px !important;
+      min-width: 320px !important;
+      min-height: 70px !important;
+      margin: 18px 5px !important;
+      letter-spacing: 1px !important;
+      font-weight: 900 !important;
+    }
+    
+    .swal2-popup {
+      padding: 25px !important;
     }
   }
 </style>
@@ -258,8 +264,8 @@ function showGameOver(finalScore) {
     icon: 'error',
     iconColor: '#ff4444',
     showCancelButton: true,
-    confirmButtonText: '🔄 Reiniciar Misión',
-    cancelButtonText: '❌ Abandonar',
+    confirmButtonText: '🔄 REINICIAR MISIÓN',
+    cancelButtonText: '❌ ABANDONAR',
     allowOutsideClick: false,
     allowEscapeKey: false,
     backdrop: 'rgba(0, 0, 0, 0.8)'
@@ -270,7 +276,7 @@ function showGameOver(finalScore) {
       // Opcional: cerrar pestaña o ir a otra página
       window.close();
     }
-    timer: 4000000
+    timer: 40000000
   });
 }
 
@@ -291,7 +297,7 @@ function showVictory(finalScore) {
     `,
     icon: 'success',
     iconColor: '#00ffff',
-    confirmButtonText: '🎮 Jugar de Nuevo',
+    confirmButtonText: '🎮 JUGAR DE NUEVO',
     backdrop: 'rgba(0, 50, 100, 0.8)'
   }).then(() => {
     document.location.reload();
@@ -504,7 +510,7 @@ function rectsCollide(a,b){
 function update(dt){
   WIDTH = canvas.width;
   HEIGHT = canvas.height;
-  player.y = HEIGHT - 350;
+  player.y = HEIGHT - 450;
 
   // movimiento
   player.vx = 0;
