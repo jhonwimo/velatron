@@ -14,7 +14,8 @@
   }
 
   body {
-    background: linear-gradient(180deg,#071026,#0b1220); /* Fondo degradado azul oscuro para el body */
+    /* Fondo degradado azul oscuro para el body (el fondo principal que quieres ver) */
+    background: linear-gradient(180deg,#071026,#0b1220);
     font-family: Inter, Arial, sans-serif;
     display: flex;
     justify-content: center;
@@ -25,8 +26,8 @@
     width: 100vw !important;
     height: 100vh !important;
     display: block;
-    /* El canvas puede tener su propio fondo si lo necesitas, pero el body ya tiene uno */
-    background: transparent; /* Asegúrate de que el canvas sea transparente para ver el fondo del body */
+    /* ¡Aquí el cambio clave! El canvas debe ser transparente para que se vea el fondo del body */
+    background: transparent; 
   }
 
   #hud {
@@ -476,7 +477,7 @@ function draw(){
   ctx.fillStyle = "#08131a";
   ctx.fillRect(0, HEIGHT - 40, WIDTH, 40);
 
-  // osos (¡ahora con la imagen transparente sin procesamiento extra!)
+  // osos (¡ahora se dibuja la imagen transparente sin procesamiento extra!)
   bears.forEach(b => {
     ctx.drawImage(osoImg, b.x, b.y, b.w, b.h);
   });
@@ -580,3 +581,4 @@ requestAnimationFrame(loop);
 
 </body>
 </html>
+```http://googleusercontent.com/image_generation_content/32
