@@ -72,6 +72,81 @@ playerImg.src = "velatron.png";
 const osoImg = new Image();
 osoImg.src = "oso.jpg";
 
+/* ---------------- Audio ---------------- */
+const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+let audioInitialized = false;
+
+// Función para crear sonidos sintéticos
+function createTone(frequency, duration, type = 'sine', volume = 0.3) {
+  if (!audioInitialized) return;
+  
+  const oscillator = audioContext.createOscillator();
+  const gainNode = audioContext.createGain();
+  
+  oscillator.connect(gainNode);
+  gainNode.connect(audioContext.destination);
+  
+  oscillator.frequency.setValueAtTime(frequency, audioContext.currentTime);
+  oscillator.type = type;
+  
+  gainNode.gain.setValueAtTime(0, audioContext.currentTime);
+  gainNode.gain.linearRampToValueAtTime(volume, audioContext.currentTime + 0.01);
+  gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + duration);
+  
+  oscillator.start(audioContext.currentTime);
+  oscillator.stop(audioContext.currentTime + duration);
+}
+
+// Sonidos del juego
+function playLaserSound() {
+  createTone(800, 0.15, 'sawtooth', 0.2);
+  setTimeout(() => createTone(1200, 0.1, 'sine', 0.15), 50);
+}
+
+function playSwordSound() {
+  createTone(400, 0.2, 'square', 0.25);
+  setTimeout(() => createTone(600, 0.15, 'sawtooth', 0.2), 80);
+}
+
+function playExplosionSound() {
+  // Explosión con ruido blanco
+  if (!audioInitialized) return;
+  
+  const bufferSize = audioContext.sampleRate * 0.3;
+  const buffer = audioContext.createBuffer(1, bufferSize, audioContext.sampleRate);
+  const output = buffer.getChannelData(0);
+  
+  for (let i = 0; i < bufferSize; i++) {
+    output[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / bufferSize, 2);
+  }
+  
+  const source = audioContext.createBufferSource();
+  const gainNode = audioContext.createGain();
+  
+  source.buffer = buffer;
+  source.connect(gainNode);
+  gainNode.connect(audioContext.destination);
+  
+  gainNode.gain.setValueAtTime(0.15, audioContext.currentTime);
+  gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.3);
+  
+  source.start();
+}
+
+function playHitSound() {
+  createTone(200, 0.3, 'sawtooth', 0.3);
+  setTimeout(() => createTone(150, 0.2, 'triangle', 0.25), 100);
+}
+
+// Inicializar audio en la primera interacción
+function initAudio() {
+  if (audioInitialized) return;
+  if (audioContext.state === 'suspended') {
+    audioContext.resume();
+  }
+  audioInitialized = true;
+}
+
 const player = {
   x: 100,
   y: HEIGHT - 200,
@@ -125,6 +200,7 @@ function startAttack(){
   if (player.attacking) return;
   player.attacking = true;
   player.attackStart = performance.now();
+  playSwordSound(); // Sonido de sable láser
 }
 
 /* ---------------- Disparo de Láser ---------------- */
@@ -133,6 +209,7 @@ function shootLaser(){
   if (now - lastShot < shootCooldown) return;
   
   lastShot = now;
+  playLaserSound(); // Sonido de disparo
   
   // crear láser desde el centro del jugador
   lasers.push({
@@ -151,6 +228,7 @@ let lastTouchTime = 0;
 
 canvas.addEventListener("touchstart", e => {
   e.preventDefault();
+  initAudio(); // Inicializar audio en primera interacción
   const t = e.touches[0];
   const px = player.x + player.w/2;
   const now = performance.now();
@@ -201,6 +279,7 @@ canvas.addEventListener("touchend", e => {
 
 /* ---------------- Controles de teclado ---------------- */
 document.addEventListener("keydown", e => {
+  initAudio(); // Inicializar audio en primera interacción
   switch(e.code) {
     case "ArrowLeft":
     case "KeyA":
@@ -272,6 +351,7 @@ function update(dt){
     if (rectsCollide(b, player)){
       lives--;
       bears.splice(i,1);
+      playHitSound(); // Sonido de daño
       if (lives <= 0){
         alert("GAME OVER - Puntos: " + score);
         document.location.reload();
@@ -285,6 +365,7 @@ function update(dt){
       if (rectsCollide(s, b)){
         score += 25;
         bears.splice(i,1);
+        playExplosionSound(); // Sonido de explosión
         continue;
       }
     }
@@ -308,6 +389,7 @@ function update(dt){
         score += 50; // más puntos por disparar
         bears.splice(j, 1);
         lasers.splice(i, 1);
+        playExplosionSound(); // Sonido de explosión
         break;
       }
     }
