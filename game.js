@@ -343,7 +343,7 @@ function showGameOver(finalScore) {
         </div>
         <div class="game-over-message" style="font-size: clamp(18px, 5vw, 24px); opacity: 0.9; margin: 20px 0; line-height: 1.6;">
           Los osos han conquistado el mercado ...<br>
-          ¿Intentarás salvar el universo de nuevo?
+          ¿Intentarás salvar el universo cripto de nuevo?
         </div>
       </div>
     `,
