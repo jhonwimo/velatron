@@ -140,6 +140,9 @@ function startGame() {
     gameStarted = true;
     introActive = false;
     
+    // Iniciar música de fondo
+    playBackgroundMusic();
+    
     // Iniciar el juego
     resizeCanvas();
     if (!window.gameLoopStarted) {
@@ -209,6 +212,10 @@ osoImg.onload = function() {
 const audioContext = new (window.AudioContext || window.webkitAudioContext)();
 let audioInitialized = false;
 
+// Música de fondo
+let backgroundMusic = null;
+let musicPlaying = false;
+
 // Función para crear sonidos sintéticos
 function createTone(frequency, duration, type = 'sine', volume = 0.3) {
   if (!audioInitialized) return;
@@ -271,6 +278,41 @@ function playHitSound() {
   setTimeout(() => createTone(150, 0.2, 'triangle', 0.25), 100);
 }
 
+// Funciones para música de fondo
+function initBackgroundMusic() {
+  if (!backgroundMusic) {
+    backgroundMusic = new Audio('velatron.mp3');
+    backgroundMusic.loop = true;
+    backgroundMusic.volume = 0.3; // Volumen moderado
+    
+    // Manejar errores de carga
+    backgroundMusic.onerror = function() {
+      console.log('No se pudo cargar velatron.mp3');
+    };
+  }
+}
+
+function playBackgroundMusic() {
+  initBackgroundMusic();
+  if (backgroundMusic && !musicPlaying) {
+    backgroundMusic.play().then(() => {
+      musicPlaying = true;
+      console.log('Música de fondo iniciada');
+    }).catch(error => {
+      console.log('Error al reproducir música:', error);
+    });
+  }
+}
+
+function stopBackgroundMusic() {
+  if (backgroundMusic && musicPlaying) {
+    backgroundMusic.pause();
+    backgroundMusic.currentTime = 0;
+    musicPlaying = false;
+    console.log('Música de fondo detenida');
+  }
+}
+
 // Inicializar audio en la primera interacción
 function initAudio() {
   if (audioInitialized) return;
@@ -287,8 +329,9 @@ function initAudio() {
 
 /* ---------------- Alertas Velatron ---------------- */
 function showGameOver(finalScore) {
-  // Pausar el juego cuando aparece Game Over
+  // Pausar el juego y detener música cuando aparece Game Over
   gamePaused = true;
+  stopBackgroundMusic();
   
   Swal.fire({
     title: '⚡ GAME OVER ⚡',
@@ -299,7 +342,7 @@ function showGameOver(finalScore) {
           🏆 Puntuación Final: <strong>${finalScore}</strong>
         </div>
         <div class="game-over-message" style="font-size: clamp(18px, 5vw, 24px); opacity: 0.9; margin: 20px 0; line-height: 1.6;">
-          Los osos han conquistado la galaxia...<br>
+          Los osos han conquistado el mercado ...<br>
           ¿Intentarás salvar el universo de nuevo?
         </div>
       </div>
@@ -334,8 +377,9 @@ function showGameOver(finalScore) {
 }
 
 function showVictory(finalScore) {
-  // Pausar el juego cuando aparece Victoria
+  // Pausar el juego y detener música cuando aparece Victoria
   gamePaused = true;
+  stopBackgroundMusic();
   
   Swal.fire({
     title: '🌟 ¡VICTORIA ÉPICA! 🌟',
@@ -371,7 +415,7 @@ const player = {
   w: 288,
   h: 288,
   vx: 0,
-  speed: 10,
+  speed: 15,
   facing: 1,
   attacking: false,
   attackStart: 0,
