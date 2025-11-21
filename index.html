@@ -15,12 +15,14 @@
   }
 
   body {
-    /* Fondo degradado azul oscuro para el body (el fondo principal que quieres ver) */
-    background: linear-gradient(180deg,#071026,#0b1220);
+    /* Fondo espacial igual que la intro */
+    background: linear-gradient(135deg, #000000 0%, #0b1220 30%, #071026 70%, #000000 100%);
     font-family: Inter, Arial, sans-serif;
     display: flex;
     justify-content: center;
     align-items: center;
+    position: relative;
+    overflow: hidden;
   }
 
   canvas {
@@ -38,6 +40,22 @@
     color: white;
     font-size: 18px;
     z-index: 10;
+  }
+
+  /* Estrellas de fondo para el juego */
+  #game-stars {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  #game {
+    position: relative;
+    z-index: 2;
   }
 
   /* Personalización de SweetAlert2 tema Velatron */
@@ -116,6 +134,27 @@
       flex-direction: column !important;
       gap: 10px !important;
     }
+
+    /* Título más grande en móvil */
+    .swal2-title {
+      font-size: 28px !important;
+      margin: 20px 0 !important;
+    }
+
+    /* Contenido HTML más grande en móvil */
+    .swal2-html-container {
+      font-size: 18px !important;
+      line-height: 1.6 !important;
+      margin: 20px 0 !important;
+    }
+
+    /* Popup más grande en móvil */
+    .swal2-popup {
+      width: 95vw !important;
+      max-width: 400px !important;
+      padding: 30px 20px !important;
+      margin: 20px !important;
+    }
   }
 
   /* Botones extra grandes para pantallas muy pequeñas */
@@ -131,7 +170,39 @@
     }
     
     .swal2-popup {
-      padding: 25px !important;
+      width: 98vw !important;
+      max-width: 380px !important;
+      padding: 35px 15px !important;
+      margin: 10px !important;
+    }
+
+    /* Título extra grande para pantallas pequeñas */
+    .swal2-title {
+      font-size: 32px !important;
+      margin: 25px 0 !important;
+      line-height: 1.2 !important;
+    }
+
+    /* Contenido HTML extra grande para pantallas pequeñas */
+    .swal2-html-container {
+      font-size: 20px !important;
+      line-height: 1.7 !important;
+      margin: 25px 0 !important;
+    }
+
+    /* Hacer más grandes los elementos específicos del Game Over */
+    .swal2-html-container div[style*="font-size: 1.2em"] {
+      font-size: 22px !important;
+    }
+
+    .swal2-html-container div[style*="font-size: 1.5em"] {
+      font-size: 26px !important;
+      margin: 20px 0 !important;
+    }
+
+    .swal2-html-container div[style*="font-size: 0.9em"] {
+      font-size: 18px !important;
+      margin: 15px 0 !important;
     }
   }
 
@@ -406,6 +477,9 @@
   </div>
 </div>
 
+<!-- Estrellas de fondo para el juego -->
+<div id="game-stars" class="stars"></div>
+
 <div id="hud">Puntos: 0 · Vidas: 3 · 🚀 ESPACIO: Láser · 🗡️ Z: Sable</div>
 <canvas id="game"></canvas>
 
@@ -423,6 +497,7 @@ function resizeCanvas(){
 // Variables para la introducción
 let introActive = true;
 let gameStarted = false;
+let gamePaused = false;
 
 function initGame() {
   resizeCanvas();
@@ -432,6 +507,7 @@ function initGame() {
   // Ocultar elementos del juego durante la intro
   canvas.style.display = 'none';
   hud.style.display = 'none';
+  document.getElementById('game-stars').style.display = 'none';
 }
 
 function createStars() {
@@ -460,6 +536,39 @@ function createStars() {
     }
     
     starsContainer.appendChild(star);
+  }
+}
+
+function createGameStars() {
+  const gameStarsContainer = document.getElementById('game-stars');
+  const numStars = window.innerWidth < 768 ? 80 : 150;
+  
+  // Limpiar estrellas existentes
+  gameStarsContainer.innerHTML = '';
+  
+  for (let i = 0; i < numStars; i++) {
+    const star = document.createElement('div');
+    star.className = 'star';
+    
+    // Posición aleatoria
+    star.style.left = Math.random() * 100 + '%';
+    star.style.top = Math.random() * 100 + '%';
+    
+    // Tamaño aleatorio (más pequeñas para no distraer del juego)
+    const size = Math.random() * 2 + 0.5;
+    star.style.width = size + 'px';
+    star.style.height = size + 'px';
+    
+    // Menos estrellas en movimiento para el juego
+    if (Math.random() < 0.2) {
+      star.classList.add('moving');
+      star.style.animationDelay = Math.random() * 5 + 's';
+      star.style.animationDuration = (Math.random() * 4 + 4) + 's';
+    } else {
+      star.style.animationDelay = Math.random() * 3 + 's';
+    }
+    
+    gameStarsContainer.appendChild(star);
   }
 }
 
@@ -509,6 +618,11 @@ function startGame() {
     intro.classList.add('intro-hidden');
     canvas.style.display = 'block';
     hud.style.display = 'block';
+    
+    // Crear estrellas para el fondo del juego
+    createGameStars();
+    document.getElementById('game-stars').style.display = 'block';
+    
     gameStarted = true;
     introActive = false;
     
@@ -619,15 +733,18 @@ function initAudio() {
 
 /* ---------------- Alertas Velatron ---------------- */
 function showGameOver(finalScore) {
+  // Pausar el juego cuando aparece Game Over
+  gamePaused = true;
+  
   Swal.fire({
     title: '⚡ GAME OVER ⚡',
     html: `
       <div style="text-align: center;">
-        <div style="font-size: 1.2em; margin: 10px 0;">🚀 <strong>VELATRON DESTRUIDO</strong> 🚀</div>
-        <div style="font-size: 1.5em; color: #00ffff; margin: 15px 0;">
+        <div class="game-over-subtitle" style="font-size: clamp(18px, 4vw, 22px); margin: 15px 0; font-weight: bold;">🚀 <strong>VELATRON DESTRUIDO</strong> 🚀</div>
+        <div class="game-over-score" style="font-size: clamp(22px, 5vw, 28px); color: #00ffff; margin: 20px 0; font-weight: bold;">
           🏆 Puntuación Final: <strong>${finalScore}</strong>
         </div>
-        <div style="font-size: 0.9em; opacity: 0.8; margin: 10px 0;">
+        <div class="game-over-message" style="font-size: clamp(16px, 3.5vw, 18px); opacity: 0.9; margin: 15px 0; line-height: 1.5;">
           Los osos han conquistado la galaxia...<br>
           ¿Intentarás salvar el universo de nuevo?
         </div>
@@ -640,28 +757,41 @@ function showGameOver(finalScore) {
     cancelButtonText: '❌ ABANDONAR',
     allowOutsideClick: false,
     allowEscapeKey: false,
-    backdrop: 'rgba(0, 0, 0, 0.8)'
+    backdrop: 'rgba(0, 0, 0, 0.8)',
+    customClass: {
+      popup: 'game-over-popup'
+    }
   }).then((result) => {
     if (result.isConfirmed) {
+      // Reanudar el juego antes de recargar
+      gamePaused = false;
       document.location.reload();
     } else {
-      // Opcional: cerrar pestaña o ir a otra página
+      // Cerrar la página/pestaña cuando elige abandonar
+      gamePaused = false;
       window.close();
+      // Si window.close() no funciona (algunas restricciones del navegador),
+      // intentar redirigir a una página en blanco
+      setTimeout(() => {
+        window.location.href = 'about:blank';
+      }, 100);
     }
-    timer: 40000000
   });
 }
 
 function showVictory(finalScore) {
+  // Pausar el juego cuando aparece Victoria
+  gamePaused = true;
+  
   Swal.fire({
     title: '🌟 ¡VICTORIA ÉPICA! 🌟',
     html: `
       <div style="text-align: center;">
-        <div style="font-size: 1.2em; margin: 10px 0;">⚡ <strong>VELATRON TRIUNFANTE</strong> ⚡</div>
-        <div style="font-size: 1.5em; color: #00ffff; margin: 15px 0;">
+        <div class="victory-subtitle" style="font-size: clamp(18px, 4vw, 22px); margin: 15px 0; font-weight: bold;">⚡ <strong>VELATRON TRIUNFANTE</strong> ⚡</div>
+        <div class="victory-score" style="font-size: clamp(22px, 5vw, 28px); color: #00ffff; margin: 20px 0; font-weight: bold;">
           🏆 Puntuación: <strong>${finalScore}</strong>
         </div>
-        <div style="font-size: 0.9em; opacity: 0.8; margin: 10px 0;">
+        <div class="victory-message" style="font-size: clamp(16px, 3.5vw, 18px); opacity: 0.9; margin: 15px 0; line-height: 1.5;">
           ¡Has salvado la galaxia!<br>
           Los osos han sido derrotados.
         </div>
@@ -670,8 +800,13 @@ function showVictory(finalScore) {
     icon: 'success',
     iconColor: '#00ffff',
     confirmButtonText: '🎮 JUGAR DE NUEVO',
-    backdrop: 'rgba(0, 50, 100, 0.8)'
+    backdrop: 'rgba(0, 50, 100, 0.8)',
+    customClass: {
+      popup: 'victory-popup'
+    }
   }).then(() => {
+    // Reanudar el juego antes de recargar
+    gamePaused = false;
     document.location.reload();
   });
 }
@@ -784,8 +919,8 @@ let touchX = null;
 let lastTouchTime = 0;
 
 canvas.addEventListener("touchstart", e => {
-  // Solo procesar toques si el juego ha comenzado
-  if (!gameStarted || introActive) return;
+  // Solo procesar toques si el juego ha comenzado y no está pausado
+  if (!gameStarted || introActive || gamePaused) return;
   
   e.preventDefault();
   initAudio(); // Inicializar audio en primera interacción
@@ -818,8 +953,8 @@ canvas.addEventListener("touchstart", e => {
 });
 
 canvas.addEventListener("touchmove", e => {
-  // Solo procesar toques si el juego ha comenzado
-  if (!gameStarted || introActive) return;
+  // Solo procesar toques si el juego ha comenzado y no está pausado
+  if (!gameStarted || introActive || gamePaused) return;
   
   e.preventDefault();
   const t = e.touches[0];
@@ -835,8 +970,8 @@ canvas.addEventListener("touchmove", e => {
 });
 
 canvas.addEventListener("touchend", e => {
-  // Solo procesar toques si el juego ha comenzado
-  if (!gameStarted || introActive) return;
+  // Solo procesar toques si el juego ha comenzado y no está pausado
+  if (!gameStarted || introActive || gamePaused) return;
   
   e.preventDefault();
   keys["left"] = false;
@@ -856,8 +991,8 @@ document.addEventListener("keydown", e => {
     return;
   }
   
-  // Solo procesar controles si el juego ha comenzado
-  if (!gameStarted) return;
+  // Solo procesar controles si el juego ha comenzado y no está pausado
+  if (!gameStarted || gamePaused) return;
   
   switch(e.code) {
     case "ArrowLeft":
@@ -880,8 +1015,8 @@ document.addEventListener("keydown", e => {
 });
 
 document.addEventListener("keyup", e => {
-  // Solo procesar controles si el juego ha comenzado
-  if (!gameStarted || introActive) return;
+  // Solo procesar controles si el juego ha comenzado y no está pausado
+  if (!gameStarted || introActive || gamePaused) return;
   
   switch(e.code) {
     case "ArrowLeft":
@@ -1163,8 +1298,8 @@ function draw(){
 
 /* ---------------- Loop ---------------- */
 function loop(now){
-  // Solo ejecutar el juego si ha comenzado
-  if (!gameStarted || introActive) {
+  // Solo ejecutar el juego si ha comenzado y no está pausado
+  if (!gameStarted || introActive || gamePaused) {
     requestAnimationFrame(loop);
     return;
   }
