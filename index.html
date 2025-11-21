@@ -134,16 +134,283 @@
       padding: 25px !important;
     }
   }
+
+  /* INTRODUCCIÓN CINEMATOGRÁFICA VELATRON */
+  #cinematic-intro {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: linear-gradient(135deg, #000000 0%, #0b1220 30%, #071026 70%, #000000 100%);
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    color: white;
+    font-family: 'Inter', Arial, sans-serif;
+    overflow: hidden;
+  }
+
+  .stars {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+  }
+
+  .star {
+    position: absolute;
+    background: white;
+    border-radius: 50%;
+    animation: starTwinkle 2s infinite alternate;
+  }
+
+  .star.moving {
+    animation: starMove 3s linear infinite;
+  }
+
+  @keyframes starTwinkle {
+    0% { opacity: 0.3; transform: scale(0.8); }
+    100% { opacity: 1; transform: scale(1.2); }
+  }
+
+  @keyframes starMove {
+    0% { transform: translateX(-10px) translateY(-10px); opacity: 0; }
+    10% { opacity: 1; }
+    90% { opacity: 1; }
+    100% { transform: translateX(calc(100vw + 10px)) translateY(calc(100vh + 10px)); opacity: 0; }
+  }
+
+  .intro-logo {
+    font-size: clamp(3rem, 8vw, 8rem);
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    background: linear-gradient(45deg, #00ffff, #0080ff, #00ffff);
+    background-size: 300% 300%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: logoGlow 3s ease-in-out infinite, logoSlide 1.5s ease-out;
+    text-shadow: 0 0 30px rgba(0, 255, 255, 0.8);
+    margin-bottom: 2rem;
+    text-align: center;
+  }
+
+  @keyframes logoGlow {
+    0%, 100% { 
+      background-position: 0% 50%;
+      filter: drop-shadow(0 0 20px rgba(0, 255, 255, 0.8));
+    }
+    50% { 
+      background-position: 100% 50%;
+      filter: drop-shadow(0 0 40px rgba(0, 255, 255, 1));
+    }
+  }
+
+  @keyframes logoSlide {
+    0% { 
+      transform: translateY(-100px);
+      opacity: 0;
+    }
+    100% { 
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+
+  .intro-subtitle {
+    font-size: clamp(1rem, 3vw, 2rem);
+    color: #ffffff;
+    text-align: center;
+    margin-bottom: 3rem;
+    opacity: 0;
+    animation: subtitleFade 2s ease-in 1s forwards;
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+  }
+
+  @keyframes subtitleFade {
+    0% { 
+      opacity: 0;
+      transform: translateY(30px);
+    }
+    100% { 
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .intro-button {
+    background: linear-gradient(45deg, #00ffff, #0080ff);
+    border: none;
+    border-radius: 15px;
+    color: #000;
+    font-weight: 900;
+    font-size: clamp(1.2rem, 3vw, 2rem);
+    padding: clamp(15px, 3vw, 25px) clamp(30px, 6vw, 50px);
+    cursor: pointer;
+    box-shadow: 0 0 30px rgba(0, 255, 255, 0.6);
+    transition: all 0.3s ease;
+    opacity: 0;
+    animation: buttonAppear 2s ease-in 2s forwards, buttonPulse 2s ease-in-out 4s infinite;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    min-width: clamp(200px, 40vw, 300px);
+    text-align: center;
+  }
+
+  .intro-button:hover {
+    background: linear-gradient(45deg, #0080ff, #00ffff);
+    box-shadow: 0 0 50px rgba(0, 255, 255, 1);
+    transform: scale(1.05);
+  }
+
+  @keyframes buttonAppear {
+    0% { 
+      opacity: 0;
+      transform: scale(0.8) translateY(50px);
+    }
+    100% { 
+      opacity: 1;
+      transform: scale(1) translateY(0);
+    }
+  }
+
+  @keyframes buttonPulse {
+    0%, 100% { 
+      box-shadow: 0 0 30px rgba(0, 255, 255, 0.6);
+    }
+    50% { 
+      box-shadow: 0 0 50px rgba(0, 255, 255, 1);
+    }
+  }
+
+  .intro-warning {
+    position: absolute;
+    bottom: clamp(20px, 5vh, 50px);
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: clamp(0.8rem, 2vw, 1rem);
+    color: #cccccc;
+    text-align: center;
+    opacity: 0;
+    animation: warningFade 2s ease-in 3s forwards;
+    padding: 0 20px;
+  }
+
+  @keyframes warningFade {
+    0% { opacity: 0; }
+    100% { opacity: 0.7; }
+  }
+
+  .intro-hidden {
+    display: none !important;
+  }
+
+  /* Efectos especiales para la introducción */
+  .energy-pulse {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 200px;
+    height: 200px;
+    border: 2px solid rgba(0, 255, 255, 0.3);
+    border-radius: 50%;
+    animation: energyPulse 4s ease-in-out infinite;
+  }
+
+  .energy-pulse:nth-child(2) {
+    animation-delay: 1s;
+    width: 300px;
+    height: 300px;
+  }
+
+  .energy-pulse:nth-child(3) {
+    animation-delay: 2s;
+    width: 400px;
+    height: 400px;
+  }
+
+  @keyframes energyPulse {
+    0%, 100% {
+      transform: translate(-50%, -50%) scale(0.8);
+      opacity: 0;
+    }
+    50% {
+      transform: translate(-50%, -50%) scale(1.2);
+      opacity: 1;
+    }
+  }
+
+  /* Responsive para móviles */
+  @media (max-width: 768px) {
+    .intro-logo {
+      margin-bottom: 1.5rem;
+    }
+    
+    .intro-subtitle {
+      margin-bottom: 2rem;
+      padding: 0 20px;
+    }
+    
+    .intro-button {
+      margin: 0 20px;
+    }
+  }
+
+  @media (max-height: 600px) {
+    .intro-logo {
+      font-size: clamp(2rem, 6vw, 4rem);
+      margin-bottom: 1rem;
+    }
+    
+    .intro-subtitle {
+      font-size: clamp(0.9rem, 2.5vw, 1.5rem);
+      margin-bottom: 1.5rem;
+    }
+    
+    .intro-warning {
+      bottom: 10px;
+      font-size: clamp(0.7rem, 1.8vw, 0.9rem);
+    }
+  }
 </style>
 </head>
 
-<body onload="resizeCanvas()" onresize="resizeCanvas()">
+<body onload="initGame()" onresize="resizeCanvas()">
+
+<!-- INTRODUCCIÓN CINEMATOGRÁFICA -->
+<div id="cinematic-intro">
+  <!-- Estrellas animadas -->
+  <div class="stars" id="stars-container"></div>
+  
+  <!-- Efectos de energía -->
+  <div class="energy-pulse"></div>
+  <div class="energy-pulse"></div>
+  <div class="energy-pulse"></div>
+  
+  <!-- Contenido principal -->
+  <div class="intro-logo" id="intro-logo">VELATRON</div>
+  <div class="intro-subtitle" id="intro-subtitle">DEFENSOR DE LA GALAXIA</div>
+  <button class="intro-button" id="start-button" onclick="startGame()">
+    🚀 INICIAR MISIÓN
+  </button>
+  
+  <!-- Advertencia -->
+  <div class="intro-warning">
+    🎧 Usa auriculares para una experiencia completa<br>
+    📱 Toca la pantalla para mover • Doble toque para disparar • Toca a Velatron para el sable láser
+  </div>
+</div>
 
 <div id="hud">Puntos: 0 · Vidas: 3 · 🚀 ESPACIO: Láser · 🗡️ Z: Sable</div>
 <canvas id="game"></canvas>
 
 <script>
-/* ---------------- Canvas ---------------- */
+/* ---------------- Canvas y Sistema de Introducción ---------------- */
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 const hud = document.getElementById("hud");
@@ -152,7 +419,107 @@ function resizeCanvas(){
   canvas.width = window.innerWidth;
   canvas.height = window.innerHeight;
 }
-resizeCanvas();
+
+// Variables para la introducción
+let introActive = true;
+let gameStarted = false;
+
+function initGame() {
+  resizeCanvas();
+  createStars();
+  playIntroMusic();
+  
+  // Ocultar elementos del juego durante la intro
+  canvas.style.display = 'none';
+  hud.style.display = 'none';
+}
+
+function createStars() {
+  const starsContainer = document.getElementById('stars-container');
+  const numStars = window.innerWidth < 768 ? 50 : 100;
+  
+  for (let i = 0; i < numStars; i++) {
+    const star = document.createElement('div');
+    star.className = 'star';
+    
+    // Posición aleatoria
+    star.style.left = Math.random() * 100 + '%';
+    star.style.top = Math.random() * 100 + '%';
+    
+    // Tamaño aleatorio
+    const size = Math.random() * 3 + 1;
+    star.style.width = size + 'px';
+    star.style.height = size + 'px';
+    
+    // Algunas estrellas se mueven
+    if (Math.random() < 0.3) {
+      star.classList.add('moving');
+      star.style.animationDelay = Math.random() * 3 + 's';
+    } else {
+      star.style.animationDelay = Math.random() * 2 + 's';
+    }
+    
+    starsContainer.appendChild(star);
+  }
+}
+
+function playIntroMusic() {
+  if (!audioInitialized) return;
+  
+  // Secuencia musical épica
+  setTimeout(() => {
+    createTone(220, 0.5, 'sawtooth', 0.1); // A
+  }, 500);
+  
+  setTimeout(() => {
+    createTone(330, 0.5, 'sawtooth', 0.12); // E
+  }, 1000);
+  
+  setTimeout(() => {
+    createTone(440, 0.5, 'sawtooth', 0.15); // A
+  }, 1500);
+  
+  setTimeout(() => {
+    createTone(550, 1, 'sawtooth', 0.18); // C#
+  }, 2000);
+  
+  // Acordes de fondo
+  setTimeout(() => {
+    createTone(110, 2, 'sine', 0.08); // A bajo
+    createTone(220, 2, 'sine', 0.06); // A
+    createTone(330, 2, 'sine', 0.04); // E
+  }, 2500);
+}
+
+function startGame() {
+  initAudio(); // Asegurar que el audio esté inicializado
+  
+  // Efecto de sonido de inicio
+  createTone(800, 0.3, 'square', 0.2);
+  setTimeout(() => createTone(1200, 0.3, 'square', 0.25), 150);
+  setTimeout(() => createTone(1600, 0.5, 'square', 0.3), 300);
+  
+  // Ocultar introducción con animación
+  const intro = document.getElementById('cinematic-intro');
+  intro.style.transition = 'opacity 1s ease-out, transform 1s ease-out';
+  intro.style.opacity = '0';
+  intro.style.transform = 'scale(1.1)';
+  
+  setTimeout(() => {
+    intro.classList.add('intro-hidden');
+    canvas.style.display = 'block';
+    hud.style.display = 'block';
+    gameStarted = true;
+    introActive = false;
+    
+    // Iniciar el juego
+    resizeCanvas();
+    if (!window.gameLoopStarted) {
+      requestAnimationFrame(loop);
+      window.gameLoopStarted = true;
+    }
+  }, 1000);
+}
 
 /* ---------------- Estado ---------------- */
 let WIDTH = canvas.width;
@@ -243,6 +610,11 @@ function initAudio() {
     audioContext.resume();
   }
   audioInitialized = true;
+  
+  // Reproducir música de introducción si estamos en la intro
+  if (introActive) {
+    setTimeout(() => playIntroMusic(), 100);
+  }
 }
 
 /* ---------------- Alertas Velatron ---------------- */
@@ -412,6 +784,9 @@ let touchX = null;
 let lastTouchTime = 0;
 
 canvas.addEventListener("touchstart", e => {
+  // Solo procesar toques si el juego ha comenzado
+  if (!gameStarted || introActive) return;
+  
   e.preventDefault();
   initAudio(); // Inicializar audio en primera interacción
   const t = e.touches[0];
@@ -443,6 +818,9 @@ canvas.addEventListener("touchstart", e => {
 });
 
 canvas.addEventListener("touchmove", e => {
+  // Solo procesar toques si el juego ha comenzado
+  if (!gameStarted || introActive) return;
+  
   e.preventDefault();
   const t = e.touches[0];
   const px = player.x + player.w/2;
@@ -457,6 +835,9 @@ canvas.addEventListener("touchmove", e => {
 });
 
 canvas.addEventListener("touchend", e => {
+  // Solo procesar toques si el juego ha comenzado
+  if (!gameStarted || introActive) return;
+  
   e.preventDefault();
   keys["left"] = false;
   keys["right"] = false;
@@ -465,6 +846,19 @@ canvas.addEventListener("touchend", e => {
 /* ---------------- Controles de teclado ---------------- */
 document.addEventListener("keydown", e => {
   initAudio(); // Inicializar audio en primera interacción
+  
+  // Si estamos en la introducción, Enter o Espacio inicia el juego
+  if (introActive) {
+    if (e.code === "Enter" || e.code === "Space") {
+      e.preventDefault();
+      startGame();
+    }
+    return;
+  }
+  
+  // Solo procesar controles si el juego ha comenzado
+  if (!gameStarted) return;
+  
   switch(e.code) {
     case "ArrowLeft":
     case "KeyA":
@@ -486,6 +880,9 @@ document.addEventListener("keydown", e => {
 });
 
 document.addEventListener("keyup", e => {
+  // Solo procesar controles si el juego ha comenzado
+  if (!gameStarted || introActive) return;
+  
   switch(e.code) {
     case "ArrowLeft":
     case "KeyA":
@@ -766,6 +1163,12 @@ function draw(){
 
 /* ---------------- Loop ---------------- */
 function loop(now){
+  // Solo ejecutar el juego si ha comenzado
+  if (!gameStarted || introActive) {
+    requestAnimationFrame(loop);
+    return;
+  }
+  
   const dt = now - (lastTime || now);
   lastTime = now;
 
@@ -774,8 +1177,6 @@ function loop(now){
 
   requestAnimationFrame(loop);
 }
-
-requestAnimationFrame(loop);
 </script>
 
 </body>
