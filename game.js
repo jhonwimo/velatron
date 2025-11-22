@@ -4,15 +4,152 @@ const ctx = canvas.getContext("2d");
 const hud = document.getElementById("hud");
 
 /* ---------------- Sistema de Ranking ---------------- */
+// Generar o recuperar ID único del navegador
+function getBrowserId() {
+  let browserId = localStorage.getItem('velatronBrowserId');
+  if (!browserId) {
+    // Generar ID único basado en timestamp y random
+    browserId = 'VLT-' + Date.now().toString(36) + '-' + Math.random().toString(36).substr(2, 9);
+    localStorage.setItem('velatronBrowserId', browserId);
+  }
+  return browserId;
+}
+
+// Obtener o pedir nombre del jugador
+function getPlayerName() {
+  let playerName = localStorage.getItem('velatronPlayerName');
+  return playerName || null;
+}
+
+function setPlayerName(name) {
+  localStorage.setItem('velatronPlayerName', name);
+}
+
+// Funciones para manejar foto de perfil
+function getPlayerPhoto() {
+  return localStorage.getItem('velatronPlayerPhoto') || null;
+}
+
+function setPlayerPhoto(photoData) {
+  localStorage.setItem('velatronPlayerPhoto', photoData);
+}
+
+function handlePhotoUpload(file) {
+  return new Promise((resolve, reject) => {
+    if (!file || !file.type.startsWith('image/')) {
+      reject('Debe ser una imagen');
+      return;
+    }
+    
+    // Limitar tamaño a 500KB
+    if (file.size > 500000) {
+      reject('La imagen debe ser menor a 500KB');
+      return;
+    }
+    
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        // Redimensionar imagen a 100x100
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = 100;
+        canvas.height = 100;
+        
+        // Dibujar imagen centrada y recortada
+        const scale = Math.max(100 / img.width, 100 / img.height);
+        const x = (100 - img.width * scale) / 2;
+        const y = (100 - img.height * scale) / 2;
+        ctx.drawImage(img, x, y, img.width * scale, img.height * scale);
+        
+        // Convertir a base64
+        const photoData = canvas.toDataURL('image/jpeg', 0.8);
+        resolve(photoData);
+      };
+      img.onerror = () => reject('Error al cargar la imagen');
+      img.src = e.target.result;
+    };
+    reader.onerror = () => reject('Error al leer el archivo');
+    reader.readAsDataURL(file);
+  });
+}
+
 function getRanking() {
   const ranking = localStorage.getItem('velatronRanking');
   return ranking ? JSON.parse(ranking) : [];
 }
 
-function saveScore(score) {
+async function saveScore(score) {
   const ranking = getRanking();
+  const browserId = getBrowserId();
+  let playerName = getPlayerName();
+  let playerPhoto = getPlayerPhoto();
+  
+  // Pedir nombre si no lo tiene
+  if (!playerName) {
+    const { value: name } = await Swal.fire({
+      title: '🎮 Registra tu perfil',
+      html: `
+        <p style="font-size: 18px; margin: 20px 0;">Ingresa tu nombre para aparecer en el ranking</p>
+        <div style="margin: 20px 0;">
+          <input type="file" id="profile-photo" accept="image/*" style="display: none;">
+          <button onclick="document.getElementById('profile-photo').click()" 
+                  style="background: linear-gradient(45deg, #00ffff, #0080ff); border: none; border-radius: 10px; 
+                         color: #000; font-weight: bold; padding: 12px 25px; cursor: pointer; font-size: 16px;">
+            📸 Subir foto (opcional)
+          </button>
+          <div id="photo-preview" style="margin-top: 15px;"></div>
+        </div>
+      `,
+      input: 'text',
+      inputPlaceholder: 'Tu nombre de guerrero cripto',
+      inputAttributes: {
+        maxlength: 20,
+        style: 'font-size: 20px; text-align: center; padding: 15px;'
+      },
+      showCancelButton: true,
+      confirmButtonText: '✅ Guardar',
+      cancelButtonText: '❌ Anónimo',
+      didOpen: () => {
+        const photoInput = document.getElementById('profile-photo');
+        const preview = document.getElementById('photo-preview');
+        
+        photoInput.addEventListener('change', async (e) => {
+          const file = e.target.files[0];
+          if (file) {
+            try {
+              playerPhoto = await handlePhotoUpload(file);
+              preview.innerHTML = `<img src="${playerPhoto}" style="width: 80px; height: 80px; border-radius: 50%; border: 3px solid #00ffff;">`;
+            } catch (error) {
+              preview.innerHTML = `<p style="color: #ff4444;">${error}</p>`;
+            }
+          }
+        });
+      },
+      inputValidator: (value) => {
+        if (value && value.trim().length > 0) {
+          return null;
+        }
+      },
+      backdrop: 'rgba(0, 0, 0, 0.8)',
+      customClass: {
+        popup: 'game-over-popup'
+      }
+    });
+    
+    playerName = name && name.trim().length > 0 ? name.trim() : 'Anónimo';
+    setPlayerName(playerName);
+    if (playerPhoto) {
+      setPlayerPhoto(playerPhoto);
+    }
+  }
+  
   const newEntry = {
     score: score,
+    name: playerName,
+    photo: playerPhoto,
+    browserId: browserId,
     date: new Date().toLocaleString('es-ES')
   };
   
@@ -26,40 +163,49 @@ function saveScore(score) {
   return top10;
 }
 
-function getPlayerPosition(score) {
+function getPlayerPosition(score, browserId) {
   const ranking = getRanking();
   let position = 1;
   for (let entry of ranking) {
     if (score > entry.score) break;
+    if (score === entry.score && entry.browserId === browserId) break;
     position++;
   }
   return position;
 }
 
-function formatRankingHTML(ranking, currentScore = null) {
+function formatRankingHTML(ranking, currentScore = null, currentBrowserId = null) {
   if (ranking.length === 0) {
     return '<div style="color: #888; font-size: 18px; margin: 20px 0;">No hay puntuaciones aún</div>';
   }
   
-  let html = '<div style="margin: 30px 0;">';
+  let html = '<div style="margin: 30px 0; max-height: 400px; overflow-y: auto;">';
   html += '<table style="width: 100%; border-collapse: collapse; font-family: \'Inter\', Arial, sans-serif;">';
   
   ranking.forEach((entry, index) => {
-    const isCurrentScore = currentScore !== null && entry.score === currentScore;
-    const bgColor = isCurrentScore ? 'rgba(0, 255, 255, 0.2)' : 'rgba(255, 255, 255, 0.05)';
-    const textColor = isCurrentScore ? '#00ffff' : '#ffffff';
-    const fontWeight = isCurrentScore ? 'bold' : 'normal';
+    const isCurrentPlayer = currentBrowserId && entry.browserId === currentBrowserId && entry.score === currentScore;
+    const bgColor = isCurrentPlayer ? 'rgba(0, 255, 255, 0.2)' : 'rgba(255, 255, 255, 0.05)';
+    const textColor = isCurrentPlayer ? '#00ffff' : '#ffffff';
+    const fontWeight = isCurrentPlayer ? 'bold' : 'normal';
     
     let medal = '';
     if (index === 0) medal = '🥇';
     else if (index === 1) medal = '🥈';
     else if (index === 2) medal = '🥉';
     
+    const playerIndicator = isCurrentPlayer ? ' 👈' : '';
+    
+    // Avatar: usar foto si existe, sino emoji por defecto
+    const avatar = entry.photo 
+      ? `<img src="${entry.photo}" style="width: 35px; height: 35px; border-radius: 50%; border: 2px solid ${textColor}; vertical-align: middle; margin-right: 8px;">` 
+      : '<span style="font-size: 28px; vertical-align: middle; margin-right: 8px;">👽</span>';
+    
     html += `
       <tr style="background: ${bgColor}; border-bottom: 1px solid rgba(255,255,255,0.1);">
-        <td style="padding: 15px 10px; text-align: center; color: ${textColor}; font-weight: ${fontWeight}; font-size: 20px; width: 15%;">${medal} #${index + 1}</td>
-        <td style="padding: 15px 10px; text-align: center; color: ${textColor}; font-weight: ${fontWeight}; font-size: 24px; width: 35%;">${entry.score}</td>
-        <td style="padding: 15px 10px; text-align: center; color: #aaa; font-size: 14px; width: 50%;">${entry.date}</td>
+        <td style="padding: 12px 8px; text-align: center; color: ${textColor}; font-weight: ${fontWeight}; font-size: 18px; width: 12%;">${medal} #${index + 1}</td>
+        <td style="padding: 12px 8px; text-align: left; color: ${textColor}; font-weight: ${fontWeight}; font-size: 16px; width: 40%;">${avatar}${entry.name}${playerIndicator}</td>
+        <td style="padding: 12px 8px; text-align: center; color: ${textColor}; font-weight: ${fontWeight}; font-size: 22px; width: 18%;">${entry.score}</td>
+        <td style="padding: 12px 8px; text-align: center; color: #aaa; font-size: 11px; width: 30%;">${entry.date}</td>
       </tr>
     `;
   });
@@ -392,14 +538,15 @@ function initAudio() {
 }
 
 /* ---------------- Alertas Velatron ---------------- */
-function showGameOver(finalScore) {
+async function showGameOver(finalScore) {
   // Pausar el juego y detener música cuando aparece Game Over
   gamePaused = true;
   stopBackgroundMusic();
   
-  // Guardar puntuación y obtener ranking
-  const ranking = saveScore(finalScore);
-  const position = getPlayerPosition(finalScore);
+  // Guardar puntuación y obtener ranking (async)
+  const ranking = await saveScore(finalScore);
+  const browserId = getBrowserId();
+  const position = getPlayerPosition(finalScore, browserId);
   
   Swal.fire({
     title: '⚡ GAME OVER ⚡',
@@ -420,7 +567,7 @@ function showGameOver(finalScore) {
         </div>
         <div style="margin-top: 30px; border-top: 2px solid rgba(0, 255, 255, 0.3); padding-top: 20px;">
           <div style="font-size: clamp(22px, 5vw, 28px); color: #00ffff; margin-bottom: 20px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.15em; text-shadow: 0 0 10px rgba(0, 255, 255, 0.6);">📊 TOP 10 RANKING 📊</div>
-          ${formatRankingHTML(ranking, finalScore)}
+          ${formatRankingHTML(ranking, finalScore, browserId)}
         </div>
       </div>
     `,
@@ -454,14 +601,15 @@ function showGameOver(finalScore) {
   });
 }
 
-function showVictory(finalScore) {
+async function showVictory(finalScore) {
   // Pausar el juego y detener música cuando aparece Victoria
   gamePaused = true;
   stopBackgroundMusic();
   
-  // Guardar puntuación y obtener ranking
-  const ranking = saveScore(finalScore);
-  const position = getPlayerPosition(finalScore);
+  // Guardar puntuación y obtener ranking (async)
+  const ranking = await saveScore(finalScore);
+  const browserId = getBrowserId();
+  const position = getPlayerPosition(finalScore, browserId);
   
   Swal.fire({
     title: '🌟 ¡VICTORIA ÉPICA! 🌟',
@@ -482,7 +630,7 @@ function showVictory(finalScore) {
         </div>
         <div style="margin-top: 30px; border-top: 2px solid rgba(0, 255, 255, 0.3); padding-top: 20px;">
           <div style="font-size: clamp(22px, 5vw, 28px); color: #00ffff; margin-bottom: 20px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.15em; text-shadow: 0 0 10px rgba(0, 255, 255, 0.6);">📊 TOP 10 RANKING 📊</div>
-          ${formatRankingHTML(ranking, finalScore)}
+          ${formatRankingHTML(ranking, finalScore, browserId)}
         </div>
       </div>
     `,
@@ -1253,4 +1401,96 @@ function loop(now){
   draw();
 
   requestAnimationFrame(loop);
+}
+
+/* ---------------- Cambiar nombre de jugador ---------------- */
+async function changeName() {
+  const currentName = getPlayerName() || 'Anónimo';
+  const currentPhoto = getPlayerPhoto();
+  let newPhoto = currentPhoto;
+  
+  const photoPreview = currentPhoto 
+    ? `<img src="${currentPhoto}" style="width: 80px; height: 80px; border-radius: 50%; border: 3px solid #00ffff; margin: 10px 0;">` 
+    : '<p style="color: #888; margin: 10px 0;">Sin foto</p>';
+  
+  const { value: name } = await Swal.fire({
+    title: '🎮 Editar perfil',
+    html: `
+      <p style="font-size: 18px; margin: 15px 0;">Nombre actual: <strong>${currentName}</strong></p>
+      <div style="margin: 20px 0;">
+        <p style="font-size: 16px; margin: 10px 0;">Foto actual:</p>
+        ${photoPreview}
+        <div style="margin-top: 15px;">
+          <input type="file" id="profile-photo-change" accept="image/*" style="display: none;">
+          <button onclick="document.getElementById('profile-photo-change').click()" 
+                  style="background: linear-gradient(45deg, #00ffff, #0080ff); border: none; border-radius: 10px; 
+                         color: #000; font-weight: bold; padding: 10px 20px; cursor: pointer; font-size: 14px; margin: 5px;">
+            📸 Cambiar foto
+          </button>
+          <button onclick="document.getElementById('new-photo-preview').innerHTML = '<p style=\'color: #888;\'>Sin foto</p>'; window.newPhotoData = null;" 
+                  style="background: linear-gradient(45deg, #ff4444, #ff8888); border: none; border-radius: 10px; 
+                         color: #fff; font-weight: bold; padding: 10px 20px; cursor: pointer; font-size: 14px; margin: 5px;">
+            ❌ Eliminar foto
+          </button>
+        </div>
+        <div id="new-photo-preview" style="margin-top: 15px;"></div>
+      </div>
+    `,
+    input: 'text',
+    inputValue: currentName === 'Anónimo' ? '' : currentName,
+    inputPlaceholder: 'Nuevo nombre',
+    inputAttributes: {
+      maxlength: 20,
+      style: 'font-size: 20px; text-align: center; padding: 15px;'
+    },
+    showCancelButton: true,
+    confirmButtonText: '✅ Guardar',
+    cancelButtonText: '❌ Cancelar',
+    didOpen: () => {
+      const photoInput = document.getElementById('profile-photo-change');
+      const preview = document.getElementById('new-photo-preview');
+      
+      photoInput.addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (file) {
+          try {
+            newPhoto = await handlePhotoUpload(file);
+            window.newPhotoData = newPhoto;
+            preview.innerHTML = `<img src="${newPhoto}" style="width: 80px; height: 80px; border-radius: 50%; border: 3px solid #00ff00;">`;
+          } catch (error) {
+            preview.innerHTML = `<p style="color: #ff4444;">${error}</p>`;
+          }
+        }
+      });
+    },
+    inputValidator: (value) => {
+      if (!value || value.trim().length === 0) {
+        return 'Debes ingresar un nombre';
+      }
+    },
+    backdrop: 'rgba(0, 0, 0, 0.8)',
+    customClass: {
+      popup: 'game-over-popup'
+    }
+  });
+  
+  if (name && name.trim().length > 0) {
+    setPlayerName(name.trim());
+    if (window.newPhotoData !== undefined) {
+      if (window.newPhotoData === null) {
+        localStorage.removeItem('velatronPlayerPhoto');
+      } else {
+        setPlayerPhoto(window.newPhotoData);
+      }
+      window.newPhotoData = undefined;
+    }
+    Swal.fire({
+      title: '✅ Perfil actualizado',
+      text: `Tu nuevo nombre es: ${name.trim()}`,
+      icon: 'success',
+      timer: 2000,
+      showConfirmButton: false,
+      backdrop: 'rgba(0, 0, 0, 0.8)'
+    });
+  }
 }
