@@ -3,6 +3,71 @@ const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 const hud = document.getElementById("hud");
 
+/* ---------------- Sistema de Ranking ---------------- */
+function getRanking() {
+  const ranking = localStorage.getItem('velatronRanking');
+  return ranking ? JSON.parse(ranking) : [];
+}
+
+function saveScore(score) {
+  const ranking = getRanking();
+  const newEntry = {
+    score: score,
+    date: new Date().toLocaleString('es-ES')
+  };
+  
+  ranking.push(newEntry);
+  ranking.sort((a, b) => b.score - a.score);
+  
+  // Mantener solo los top 10
+  const top10 = ranking.slice(0, 10);
+  localStorage.setItem('velatronRanking', JSON.stringify(top10));
+  
+  return top10;
+}
+
+function getPlayerPosition(score) {
+  const ranking = getRanking();
+  let position = 1;
+  for (let entry of ranking) {
+    if (score > entry.score) break;
+    position++;
+  }
+  return position;
+}
+
+function formatRankingHTML(ranking, currentScore = null) {
+  if (ranking.length === 0) {
+    return '<div style="color: #888; font-size: 18px; margin: 20px 0;">No hay puntuaciones aún</div>';
+  }
+  
+  let html = '<div style="margin: 30px 0;">';
+  html += '<table style="width: 100%; border-collapse: collapse; font-family: \'Inter\', Arial, sans-serif;">';
+  
+  ranking.forEach((entry, index) => {
+    const isCurrentScore = currentScore !== null && entry.score === currentScore;
+    const bgColor = isCurrentScore ? 'rgba(0, 255, 255, 0.2)' : 'rgba(255, 255, 255, 0.05)';
+    const textColor = isCurrentScore ? '#00ffff' : '#ffffff';
+    const fontWeight = isCurrentScore ? 'bold' : 'normal';
+    
+    let medal = '';
+    if (index === 0) medal = '🥇';
+    else if (index === 1) medal = '🥈';
+    else if (index === 2) medal = '🥉';
+    
+    html += `
+      <tr style="background: ${bgColor}; border-bottom: 1px solid rgba(255,255,255,0.1);">
+        <td style="padding: 15px 10px; text-align: center; color: ${textColor}; font-weight: ${fontWeight}; font-size: 20px; width: 15%;">${medal} #${index + 1}</td>
+        <td style="padding: 15px 10px; text-align: center; color: ${textColor}; font-weight: ${fontWeight}; font-size: 24px; width: 35%;">${entry.score}</td>
+        <td style="padding: 15px 10px; text-align: center; color: #aaa; font-size: 14px; width: 50%;">${entry.date}</td>
+      </tr>
+    `;
+  });
+  
+  html += '</table></div>';
+  return html;
+}
+
 function resizeCanvas(){
   canvas.width = window.innerWidth;
   canvas.height = window.innerHeight;
@@ -163,7 +228,7 @@ let lastTime = 0;
 
 /* ---------------- Jugador ---------------- */
 const playerImg = new Image();
-playerImg.src = "velatron.png"; // Asegúrate de tener este archivo también
+playerImg.src = "velatron.jpg"; // Asegúrate de tener este archivo también
 
 const osoImg = new Image();
 osoImg.src = "oso.png"; // ¡Este es el spritesheet del oso!
@@ -173,8 +238,7 @@ const backgroundImg = new Image();
 backgroundImg.src = "fondo.png";
 
 // Variables para el fondo desplazable
-let backgroundY1 = 0; // Posición de la primera imagen de fondo
-let backgroundY2 = 0; // Posición de la segunda imagen de fondo (para el bucle)
+let backgroundY = 0; // Posición única del fondo
 let backgroundSpeed = 1.5; // Velocidad de desplazamiento del fondo (ajustada para sincronizar con caminata)
 let backgroundLoaded = false;
 let backgroundHeight = 0; // Altura escalada del fondo
@@ -333,17 +397,30 @@ function showGameOver(finalScore) {
   gamePaused = true;
   stopBackgroundMusic();
   
+  // Guardar puntuación y obtener ranking
+  const ranking = saveScore(finalScore);
+  const position = getPlayerPosition(finalScore);
+  
   Swal.fire({
     title: '⚡ GAME OVER ⚡',
     html: `
-      <div style="text-align: center;">
-        <div class="game-over-subtitle" style="font-size: clamp(20px, 6vw, 28px); margin: 20px 0; font-weight: bold;">🚀 <strong>VELATRON DESTRUIDO</strong> 🚀</div>
-        <div class="game-over-score" style="font-size: clamp(26px, 8vw, 36px); color: #00ffff; margin: 25px 0; font-weight: bold;">
-          🏆 Puntuación Final: <strong>${finalScore}</strong>
+      <div style="text-align: center; font-family: 'Inter', Arial, sans-serif;">
+        <div style="font-size: clamp(20px, 6vw, 28px); margin: 20px 0; font-weight: 900; text-transform: uppercase; letter-spacing: 0.1em;">
+          🚀 <span style="background: linear-gradient(45deg, #ff4444, #ff8888); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;">VELATRON DESTRUIDO</span> 🚀
         </div>
-        <div class="game-over-message" style="font-size: clamp(18px, 5vw, 24px); opacity: 0.9; margin: 20px 0; line-height: 1.6;">
-          Los osos han conquistado el mercado ...<br>
+        <div style="font-size: clamp(32px, 10vw, 48px); color: #00ffff; margin: 30px 0; font-weight: 900; text-shadow: 0 0 20px rgba(0, 255, 255, 0.8); letter-spacing: 0.05em;">
+          🏆 ${finalScore}
+        </div>
+        <div style="font-size: clamp(18px, 5vw, 24px); color: #ffaa00; margin: 15px 0; font-weight: bold; text-transform: uppercase; letter-spacing: 0.1em;">
+          Posición: #${position}
+        </div>
+        <div style="font-size: clamp(16px, 4vw, 20px); opacity: 0.9; margin: 20px 0; line-height: 1.6; font-weight: 500;">
+          Los osos han conquistado el mercado...<br>
           ¿Intentarás salvar el universo cripto de nuevo?
+        </div>
+        <div style="margin-top: 30px; border-top: 2px solid rgba(0, 255, 255, 0.3); padding-top: 20px;">
+          <div style="font-size: clamp(22px, 5vw, 28px); color: #00ffff; margin-bottom: 20px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.15em; text-shadow: 0 0 10px rgba(0, 255, 255, 0.6);">📊 TOP 10 RANKING 📊</div>
+          ${formatRankingHTML(ranking, finalScore)}
         </div>
       </div>
     `,
@@ -355,6 +432,7 @@ function showGameOver(finalScore) {
     allowOutsideClick: false,
     allowEscapeKey: false,
     backdrop: 'rgba(0, 0, 0, 0.8)',
+    width: 'auto',
     customClass: {
       popup: 'game-over-popup'
     }
@@ -381,17 +459,30 @@ function showVictory(finalScore) {
   gamePaused = true;
   stopBackgroundMusic();
   
+  // Guardar puntuación y obtener ranking
+  const ranking = saveScore(finalScore);
+  const position = getPlayerPosition(finalScore);
+  
   Swal.fire({
     title: '🌟 ¡VICTORIA ÉPICA! 🌟',
     html: `
-      <div style="text-align: center;">
-        <div class="victory-subtitle" style="font-size: clamp(20px, 6vw, 28px); margin: 20px 0; font-weight: bold;">⚡ <strong>VELATRON TRIUNFANTE</strong> ⚡</div>
-        <div class="victory-score" style="font-size: clamp(26px, 8vw, 36px); color: #00ffff; margin: 25px 0; font-weight: bold;">
-          🏆 Puntuación: <strong>${finalScore}</strong>
+      <div style="text-align: center; font-family: 'Inter', Arial, sans-serif;">
+        <div style="font-size: clamp(20px, 6vw, 28px); margin: 20px 0; font-weight: 900; text-transform: uppercase; letter-spacing: 0.1em;">
+          ⚡ <span style="background: linear-gradient(45deg, #00ffff, #0080ff); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;">VELATRON TRIUNFANTE</span> ⚡
         </div>
-        <div class="victory-message" style="font-size: clamp(18px, 5vw, 24px); opacity: 0.9; margin: 20px 0; line-height: 1.6;">
+        <div style="font-size: clamp(32px, 10vw, 48px); color: #00ffff; margin: 30px 0; font-weight: 900; text-shadow: 0 0 20px rgba(0, 255, 255, 0.8); letter-spacing: 0.05em;">
+          🏆 ${finalScore}
+        </div>
+        <div style="font-size: clamp(18px, 5vw, 24px); color: #ffaa00; margin: 15px 0; font-weight: bold; text-transform: uppercase; letter-spacing: 0.1em;">
+          Posición: #${position}
+        </div>
+        <div style="font-size: clamp(16px, 4vw, 20px); opacity: 0.9; margin: 20px 0; line-height: 1.6; font-weight: 500;">
           ¡Has salvado la galaxia!<br>
           Los osos han sido derrotados.
+        </div>
+        <div style="margin-top: 30px; border-top: 2px solid rgba(0, 255, 255, 0.3); padding-top: 20px;">
+          <div style="font-size: clamp(22px, 5vw, 28px); color: #00ffff; margin-bottom: 20px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.15em; text-shadow: 0 0 10px rgba(0, 255, 255, 0.6);">📊 TOP 10 RANKING 📊</div>
+          ${formatRankingHTML(ranking, finalScore)}
         </div>
       </div>
     `,
@@ -399,6 +490,7 @@ function showVictory(finalScore) {
     iconColor: '#00ffff',
     confirmButtonText: '🎮 JUGAR DE NUEVO',
     backdrop: 'rgba(0, 50, 100, 0.8)',
+    width: 'auto',
     customClass: {
       popup: 'victory-popup'
     }
@@ -524,10 +616,23 @@ function shootLaser(){
   lastShot = now;
   playLaserSound(); // Sonido de disparo
   
-  // crear láser desde el centro del jugador
+  // Calcular posición de la pistola según la dirección del jugador
+  let gunX, gunY;
+  
+  if (player.facing === 1) {
+    // Mirando a la derecha - pistola en la mano derecha (brazo extendido adelante)
+    gunX = player.x + player.w * 0.75; // Adelante del personaje
+    gunY = player.y + player.h * 0.35; // Altura del brazo extendido
+  } else {
+    // Mirando a la izquierda - pistola en la mano derecha (que ahora está del otro lado)
+    gunX = player.x + player.w * 0.25; // Lado izquierdo cuando está volteado
+    gunY = player.y + player.h * 0.35; // Altura del brazo extendido
+  }
+  
+  // Crear láser desde la posición de la pistola
   lasers.push({
-    x: player.x + player.w/2 - 8,
-    y: player.y + 20,
+    x: gunX - 8,
+    y: gunY,
     w: 16,
     h: 35,
     speed: 12,
@@ -673,21 +778,15 @@ function update(dt){
       const scaleY = HEIGHT / backgroundImg.height;
       backgroundScale = Math.max(scaleX, scaleY);
       backgroundHeight = backgroundImg.height * backgroundScale;
-      
-      // Inicializar posiciones perfectamente alineadas
-      backgroundY1 = 0;
-      backgroundY2 = -backgroundHeight;
+      backgroundY = 0;
     }
     
-    backgroundY1 += backgroundSpeed;
-    backgroundY2 += backgroundSpeed;
+    // Incrementar posición del fondo
+    backgroundY += backgroundSpeed;
     
-    // Resetear posiciones de forma fluida sin saltos
-    if (backgroundY1 >= backgroundHeight) {
-      backgroundY1 = backgroundY2 - backgroundHeight;
-    }
-    if (backgroundY2 >= backgroundHeight) {
-      backgroundY2 = backgroundY1 - backgroundHeight;
+    // Resetear posición cuando completa un ciclo (módulo para bucle perfecto)
+    if (backgroundY >= backgroundHeight) {
+      backgroundY = backgroundY % backgroundHeight;
     }
   }
 
@@ -867,7 +966,7 @@ function update(dt){
 function draw(){
   ctx.clearRect(0,0,canvas.width,canvas.height);
 
-  // Dibujar fondo desplazable
+  // Dibujar fondo desplazable con bucle perfecto
   if (backgroundLoaded && backgroundImg.complete && backgroundHeight > 0) {
     ctx.save();
     
@@ -877,26 +976,19 @@ function draw(){
     // Centrar horizontalmente si es necesario
     const offsetX = (WIDTH - scaledWidth) / 2;
     
-    // Dibujar múltiples copias del fondo para asegurar cobertura completa
-    // Esto elimina cualquier posible gap durante las transiciones
-    const copies = Math.ceil(HEIGHT / scaledHeight) + 2;
+    // Usar módulo para obtener el offset actual dentro de un ciclo
+    const currentOffset = backgroundY % scaledHeight;
     
-    for (let i = 0; i < copies; i++) {
-      // Calcular posición Y para cada copia
-      let yPos = backgroundY1 + (i * scaledHeight);
+    // Calcular cuántas copias necesitamos (siempre 2 como mínimo para cubrir transiciones)
+    const numCopies = Math.ceil(HEIGHT / scaledHeight) + 2;
+    
+    // Dibujar múltiples copias del fondo comenzando desde la posición con offset
+    for (let i = -1; i < numCopies; i++) {
+      // Posición Y calculada con el offset del módulo
+      const yPos = currentOffset + (i * scaledHeight);
       
       // Solo dibujar si está visible en pantalla (optimización)
-      if (yPos > -scaledHeight && yPos < HEIGHT) {
-        ctx.drawImage(
-          backgroundImg,
-          offsetX, yPos,
-          scaledWidth, scaledHeight
-        );
-      }
-      
-      // Segunda serie de copias con offset
-      yPos = backgroundY2 + (i * scaledHeight);
-      if (yPos > -scaledHeight && yPos < HEIGHT) {
+      if (yPos + scaledHeight > 0 && yPos < HEIGHT) {
         ctx.drawImage(
           backgroundImg,
           offsetX, yPos,

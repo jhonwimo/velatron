@@ -28,11 +28,66 @@
 
   #hud {
     position: fixed;
-    top: 10px;
-    left: 12px;
-    color: white;
-    font-size: 18px;
+    top: 15px;
+    left: 20px;
+    font-size: 28px;
+    font-weight: 900;
+    font-family: 'Inter', Arial, sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
     z-index: 10;
+    padding: 12px 20px;
+    border-radius: 10px;
+    background: rgba(0, 0, 0, 0.7);
+    border: 3px solid #00ffff;
+    color: #00ffff;
+    text-shadow: 0 0 20px rgba(0, 255, 255, 1),
+                 0 0 40px rgba(0, 255, 255, 0.8),
+                 0 0 60px rgba(0, 255, 255, 0.6),
+                 0 2px 10px rgba(0, 0, 0, 1);
+    box-shadow: 0 0 30px rgba(0, 255, 255, 0.6),
+                inset 0 0 20px rgba(0, 255, 255, 0.1);
+    animation: hudPulse 2s ease-in-out infinite;
+  }
+
+  @keyframes hudPulse {
+    0%, 100% { 
+      border-color: #00ffff;
+      box-shadow: 0 0 30px rgba(0, 255, 255, 0.6),
+                  inset 0 0 20px rgba(0, 255, 255, 0.1);
+      text-shadow: 0 0 20px rgba(0, 255, 255, 1),
+                   0 0 40px rgba(0, 255, 255, 0.8),
+                   0 0 60px rgba(0, 255, 255, 0.6);
+    }
+    50% { 
+      border-color: #0080ff;
+      box-shadow: 0 0 50px rgba(0, 255, 255, 1),
+                  inset 0 0 30px rgba(0, 255, 255, 0.2);
+      text-shadow: 0 0 30px rgba(0, 255, 255, 1),
+                   0 0 50px rgba(0, 255, 255, 1),
+                   0 0 80px rgba(0, 255, 255, 0.8);
+    }
+  }
+
+  /* HUD responsive para móviles */
+  @media (max-width: 768px) {
+    #hud {
+      font-size: 20px;
+      top: 10px;
+      left: 10px;
+      padding: 10px 15px;
+      letter-spacing: 0.1em;
+    }
+  }
+
+  @media (max-width: 480px) {
+    #hud {
+      font-size: 18px;
+      top: 8px;
+      left: 8px;
+      padding: 8px 12px;
+      letter-spacing: 0.08em;
+    }
   }
 
   /* Estrellas de fondo para el juego */
@@ -143,15 +198,18 @@
       font-size: 22px !important;
       line-height: 1.7 !important;
       margin: 25px 0 !important;
+      max-height: 60vh !important;
+      overflow-y: auto !important;
     }
 
     /* Popup mucho más grande en móvil */
     .swal2-popup {
       width: 96vw !important;
-      max-width: 500px !important;
+      max-width: 600px !important;
       padding: 40px 25px !important;
       margin: 15px !important;
-      min-height: 60vh !important;
+      max-height: 90vh !important;
+      overflow-y: auto !important;
     }
   }
 
@@ -175,10 +233,11 @@
     
     .swal2-popup {
       width: 98vw !important;
-      max-width: 450px !important;
+      max-width: 500px !important;
       padding: 50px 20px !important;
       margin: 5px !important;
-      min-height: 70vh !important;
+      max-height: 95vh !important;
+      overflow-y: auto !important;
       border-radius: 25px !important;
     }
 
@@ -191,28 +250,20 @@
 
     /* Contenido HTML extra grande para pantallas pequeñas */
     .swal2-html-container {
-      font-size: 26px !important;
-      line-height: 1.8 !important;
-      margin: 35px 0 !important;
-    }
-
-    /* Hacer más grandes los elementos específicos del Game Over */
-    .swal2-html-container .game-over-subtitle,
-    .swal2-html-container .victory-subtitle {
-      font-size: 28px !important;
+      font-size: 18px !important;
+      line-height: 1.6 !important;
       margin: 25px 0 !important;
+      max-height: 55vh !important;
+      overflow-y: auto !important;
     }
-
-    .swal2-html-container .game-over-score,
-    .swal2-html-container .victory-score {
-      font-size: 32px !important;
-      margin: 30px 0 !important;
+    
+    /* Tabla de ranking responsive */
+    .swal2-html-container table {
+      font-size: 14px !important;
     }
-
-    .swal2-html-container .game-over-message,
-    .swal2-html-container .victory-message {
-      font-size: 24px !important;
-      margin: 25px 0 !important;
+    
+    .swal2-html-container table td {
+      padding: 10px 5px !important;
     }
   }
 
